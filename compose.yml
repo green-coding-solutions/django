@@ -1,0 +1,5 @@
+version: '2'
+services:
+  gcb-django-tests:
+    image: python:3.10.12-slim-bullseye
+    container_name: gcb-django-tests
