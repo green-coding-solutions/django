@@ -89,53 +89,33 @@ def lazy(func, *resultclasses):
         until one of the methods on the result is called.
         """
 
-        __prepared = False
-
         def __init__(self, args, kw):
-            self.__args = args
-            self.__kw = kw
-            if not self.__prepared:
-                self.__prepare_class__()
-            self.__class__.__prepared = True
+            self._args = args
+            self._kw = kw
 
         def __reduce__(self):
             return (
                 _lazy_proxy_unpickle,
-                (func, self.__args, self.__kw) + resultclasses,
+                (func, self._args, self._kw) + resultclasses,
             )
+
+        def __deepcopy__(self, memo):
+            # Instances of this class are effectively immutable. It's just a
+            # collection of functions. So we don't need to do anything
+            # complicated for copying.
+            memo[id(self)] = self
+            return self
+
+        def __cast(self):
+            return func(*self._args, **self._kw)
+
+        # Explicitly wrap methods which are defined on object and hence would
+        # not have been overloaded by the loop over resultclasses below.
 
         def __repr__(self):
             return repr(self.__cast())
 
-        @classmethod
-        def __prepare_class__(cls):
-            for resultclass in resultclasses:
-                for type_ in resultclass.mro():
-                    for method_name in type_.__dict__:
-                        # All __promise__ return the same wrapper method, they
-                        # look up the correct implementation when called.
-                        if hasattr(cls, method_name):
-                            continue
-                        meth = cls.__promise__(method_name)
-                        setattr(cls, method_name, meth)
-
-        @classmethod
-        def __promise__(cls, method_name):
-            # Builds a wrapper around some magic method
-            def __wrapper__(self, *args, **kw):
-                # Automatically triggers the evaluation of a lazy value and
-                # applies the given magic method of the result type.
-                res = func(*self.__args, **self.__kw)
-                return getattr(res, method_name)(*args, **kw)
-
-            return __wrapper__
-
-        def __cast(self):
-            return func(*self.__args, **self.__kw)
-
         def __str__(self):
-            # object defines __str__(), so __prepare_class__() won't overload
-            # a __str__() method from the proxied class.
             return str(self.__cast())
 
         def __eq__(self, other):
@@ -171,8 +151,11 @@ def lazy(func, *resultclasses):
         def __hash__(self):
             return hash(self.__cast())
 
-        def __mod__(self, rhs):
-            return self.__cast() % rhs
+        def __format__(self, format_spec):
+            return format(self.__cast(), format_spec)
+
+        # Explicitly wrap methods which are required for certain operations on
+        # int/str objects to function correctly.
 
         def __add__(self, other):
             return self.__cast() + other
@@ -180,12 +163,31 @@ def lazy(func, *resultclasses):
         def __radd__(self, other):
             return other + self.__cast()
 
-        def __deepcopy__(self, memo):
-            # Instances of this class are effectively immutable. It's just a
-            # collection of functions. So we don't need to do anything
-            # complicated for copying.
-            memo[id(self)] = self
-            return self
+        def __mod__(self, other):
+            return self.__cast() % other
+
+        def __mul__(self, other):
+            return self.__cast() * other
+
+    # Add wrappers for all methods from resultclasses which haven't been
+    # wrapped explicitly above.
+    for resultclass in resultclasses:
+        for type_ in resultclass.mro():
+            for method_name in type_.__dict__:
+                # All __promise__ return the same wrapper method, they look up
+                # the correct implementation when called.
+                if hasattr(__proxy__, method_name):
+                    continue
+
+                # Builds a wrapper around some method. Pass method_name to
+                # avoid issues due to late binding.
+                def __wrapper__(self, *args, __method_name=method_name, **kw):
+                    # Automatically triggers the evaluation of a lazy value and
+                    # applies the given method of the result type.
+                    result = func(*self._args, **self._kw)
+                    return getattr(result, __method_name)(*args, **kw)
+
+                setattr(__proxy__, method_name, __wrapper__)
 
     @wraps(func)
     def __wrapper__(*args, **kw):
