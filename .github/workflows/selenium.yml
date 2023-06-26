@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   selenium-sqlite:
-    if: contains(github.event.pull_request.labels.*.name, 'selenium')
+    #if: contains(github.event.pull_request.labels.*.name, 'selenium')
     runs-on: ubuntu-latest
     name: SQLite
     steps:
@@ -55,7 +55,7 @@ jobs:
           task: display-results
 
   selenium-postgresql:
-    if: contains(github.event.pull_request.labels.*.name, 'selenium')
+    #if: contains(github.event.pull_request.labels.*.name, 'selenium')
     runs-on: ubuntu-latest
     name: PostgreSQL
     services:
