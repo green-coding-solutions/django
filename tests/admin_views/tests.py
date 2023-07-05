@@ -5635,6 +5635,10 @@ class PrePopulatedTest(TestCase):
         self.assertContains(response, '<div class="readonly">%s</div>' % self.p1.slug)
 
 
+def _clean_sidebar_state(driver):
+    driver.execute_script("localStorage.removeItem('django.admin.navSidebarIsOpen')")
+
+
 @override_settings(ROOT_URLCONF="admin_views.urls")
 class SeleniumTests(AdminSeleniumTestCase):
     available_apps = ["admin_views"] + AdminSeleniumTestCase.available_apps
@@ -6107,12 +6111,14 @@ class SeleniumTests(AdminSeleniumTestCase):
         name_input.clear()
         name_input.send_keys("<i>edited section</i>")
         self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
         # Hide sidebar.
         toggle_button = self.selenium.find_element(
             By.CSS_SELECTOR, "#toggle-nav-sidebar"
         )
         toggle_button.click()
+        self.addCleanup(_clean_sidebar_state, self.selenium)
         select = Select(self.selenium.find_element(By.ID, "id_form-0-section"))
         self.assertEqual(select.first_selected_option.text, "<i>edited section</i>")
         # Rendered select2 input.
@@ -6128,6 +6134,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         self.wait_for_text("#content h1", "Add section")
         self.selenium.find_element(By.ID, "id_name").send_keys("new section")
         self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
         select = Select(self.selenium.find_element(By.ID, "id_form-0-section"))
         self.assertEqual(select.first_selected_option.text, "new section")
@@ -6291,6 +6298,12 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         person_url = reverse("admin:admin_views_person_changelist") + "?q=Gui"
         self.selenium.get(self.live_server_url + person_url)
+        # Hide sidebar.
+        toggle_button = self.selenium.find_element(
+            By.CSS_SELECTOR, "#toggle-nav-sidebar"
+        )
+        toggle_button.click()
+        self.addCleanup(_clean_sidebar_state, self.selenium)
         self.assertGreater(
             self.selenium.find_element(By.ID, "searchbar").rect["width"],
             50,
@@ -6437,6 +6450,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         continent_select.select_by_visible_text("South America")
         self.selenium.find_element(By.CSS_SELECTOR, '[type="submit"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
 
         self.assertHTMLEqual(
@@ -6473,6 +6487,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         continent_select.select_by_visible_text("Europe")
         self.selenium.find_element(By.CSS_SELECTOR, '[type="submit"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
 
         self.assertHTMLEqual(
@@ -6514,6 +6529,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         favorite_name_input.clear()
         favorite_name_input.send_keys("Italy")
         self.selenium.find_element(By.CSS_SELECTOR, '[type="submit"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
 
         self.assertHTMLEqual(
@@ -6554,10 +6570,12 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         continent_select.select_by_visible_text("Asia")
         self.selenium.find_element(By.CSS_SELECTOR, '[type="submit"]').click()
+        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
         self.selenium.switch_to.window(self.selenium.window_handles[0])
 
         # Submit the new Traveler.
-        self.selenium.find_element(By.CSS_SELECTOR, '[name="_save"]').click()
+        with self.wait_page_loaded():
+            self.selenium.find_element(By.CSS_SELECTOR, '[name="_save"]').click()
         traveler = Traveler.objects.get()
         self.assertEqual(traveler.born_country.name, "Argentina")
         self.assertEqual(traveler.living_country.name, "Italy")
