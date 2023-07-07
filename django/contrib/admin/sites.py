@@ -120,8 +120,8 @@ class AdminSite:
                     % model.__name__
                 )
 
-            if model in self._registry:
-                registered_admin = str(self._registry[model])
+            if self.is_registered(model):
+                registered_admin = str(self.get_model_admin(model))
                 msg = "The model %s is already registered " % model.__name__
                 if registered_admin.endswith(".ModelAdmin"):
                     # Most likely registered without a ModelAdmin subclass.
@@ -156,7 +156,7 @@ class AdminSite:
         if isinstance(model_or_iterable, ModelBase):
             model_or_iterable = [model_or_iterable]
         for model in model_or_iterable:
-            if model not in self._registry:
+            if not self.is_registered(model):
                 raise NotRegistered("The model %s is not registered" % model.__name__)
             del self._registry[model]
 
@@ -165,6 +165,12 @@ class AdminSite:
         Check if a model class is registered with this `AdminSite`.
         """
         return model in self._registry
+
+    def get_model_admin(self, model):
+        try:
+            return self._registry[model]
+        except KeyError:
+            raise NotRegistered(f"The model {model.__name__} is not registered.")
 
     def add_action(self, action, name=None):
         """
