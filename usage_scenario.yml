@@ -14,7 +14,7 @@ services:
       - mkdir /var/www
       - cp -R /tmp/repo /var/www/django
 # We have to copy the code outisde of the read-only mount in /tmp/repo, because django needs to write files.
-
+    shell: sh
 
 flow:
   - name: Install Django base libraries
