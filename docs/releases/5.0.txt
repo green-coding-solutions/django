@@ -258,6 +258,7 @@ Decorators
   * :func:`~django.views.decorators.cache.cache_control`
   * :func:`~django.views.decorators.cache.never_cache`
   * :func:`~django.views.decorators.common.no_append_slash`
+  * :func:`~django.views.decorators.csrf.csrf_exempt`
   * :func:`~django.views.decorators.debug.sensitive_variables`
   * :func:`~django.views.decorators.debug.sensitive_post_parameters`
   * :func:`~django.views.decorators.http.condition`
@@ -442,6 +443,15 @@ backends.
 * Support for GDAL 2.2 and 2.3 is removed.
 
 * Support for GEOS 3.6 and 3.7 is removed.
+
+:mod:`django.contrib.sitemaps`
+------------------------------
+
+* The ``django.contrib.sitemaps.ping_google()`` function and the
+  ``ping_google`` management command are removed as the Google
+  Sitemaps ping endpoint is deprecated and will be removed in January 2024.
+
+* The ``django.contrib.sitemaps.SitemapNotFound`` exception class is removed.
 
 Using ``create_defaults__exact`` may now be required with ``QuerySet.update_or_create()``
 -----------------------------------------------------------------------------------------
