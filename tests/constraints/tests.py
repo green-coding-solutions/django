@@ -503,6 +503,27 @@ class UniqueConstraintTests(TestCase):
         self.assertEqual(constraint, mock.ANY)
         self.assertNotEqual(constraint, another_constraint)
 
+    def test_eq_with_nulls_distinct(self):
+        constraint_1 = models.UniqueConstraint(
+            Lower("title"),
+            nulls_distinct=False,
+            name="book_func_nulls_distinct_uq",
+        )
+        constraint_2 = models.UniqueConstraint(
+            Lower("title"),
+            nulls_distinct=True,
+            name="book_func_nulls_distinct_uq",
+        )
+        constraint_3 = models.UniqueConstraint(
+            Lower("title"),
+            name="book_func_nulls_distinct_uq",
+        )
+        self.assertEqual(constraint_1, constraint_1)
+        self.assertEqual(constraint_1, mock.ANY)
+        self.assertNotEqual(constraint_1, constraint_2)
+        self.assertNotEqual(constraint_1, constraint_3)
+        self.assertNotEqual(constraint_2, constraint_3)
+
     def test_repr(self):
         fields = ["foo", "bar"]
         name = "unique_fields"
@@ -558,6 +579,18 @@ class UniqueConstraintTests(TestCase):
             repr(constraint),
             "<UniqueConstraint: fields=('foo', 'bar') name='opclasses_fields' "
             "opclasses=['text_pattern_ops', 'varchar_pattern_ops']>",
+        )
+
+    def test_repr_with_nulls_distinct(self):
+        constraint = models.UniqueConstraint(
+            fields=["foo", "bar"],
+            name="nulls_distinct_fields",
+            nulls_distinct=False,
+        )
+        self.assertEqual(
+            repr(constraint),
+            "<UniqueConstraint: fields=('foo', 'bar') name='nulls_distinct_fields' "
+            "nulls_distinct=False>",
         )
 
     def test_repr_with_expressions(self):
@@ -676,6 +709,24 @@ class UniqueConstraintTests(TestCase):
                 "fields": tuple(fields),
                 "name": name,
                 "opclasses": opclasses,
+            },
+        )
+
+    def test_deconstruction_with_nulls_distinct(self):
+        fields = ["foo", "bar"]
+        name = "unique_fields"
+        constraint = models.UniqueConstraint(
+            fields=fields, name=name, nulls_distinct=True
+        )
+        path, args, kwargs = constraint.deconstruct()
+        self.assertEqual(path, "django.db.models.UniqueConstraint")
+        self.assertEqual(args, ())
+        self.assertEqual(
+            kwargs,
+            {
+                "fields": tuple(fields),
+                "name": name,
+                "nulls_distinct": True,
             },
         )
 
@@ -995,7 +1046,7 @@ class UniqueConstraintTests(TestCase):
 
     def test_invalid_defer_argument(self):
         message = "UniqueConstraint.deferrable must be a Deferrable instance."
-        with self.assertRaisesMessage(ValueError, message):
+        with self.assertRaisesMessage(TypeError, message):
             models.UniqueConstraint(
                 fields=["name"],
                 name="name_invalid",
@@ -1013,7 +1064,7 @@ class UniqueConstraintTests(TestCase):
 
     def test_invalid_include_argument(self):
         msg = "UniqueConstraint.include must be a list or tuple."
-        with self.assertRaisesMessage(ValueError, msg):
+        with self.assertRaisesMessage(TypeError, msg):
             models.UniqueConstraint(
                 name="uniq_include",
                 fields=["field"],
@@ -1022,11 +1073,18 @@ class UniqueConstraintTests(TestCase):
 
     def test_invalid_opclasses_argument(self):
         msg = "UniqueConstraint.opclasses must be a list or tuple."
-        with self.assertRaisesMessage(ValueError, msg):
+        with self.assertRaisesMessage(TypeError, msg):
             models.UniqueConstraint(
                 name="uniq_opclasses",
                 fields=["field"],
                 opclasses="jsonb_path_ops",
+            )
+
+    def test_invalid_nulls_distinct_argument(self):
+        msg = "UniqueConstraint.nulls_distinct must be a bool."
+        with self.assertRaisesMessage(TypeError, msg):
+            models.UniqueConstraint(
+                name="uniq_opclasses", fields=["field"], nulls_distinct="NULLS DISTINCT"
             )
 
     def test_opclasses_and_fields_same_length(self):
