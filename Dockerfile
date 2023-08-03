@@ -4,8 +4,6 @@ WORKDIR /tmp
 
 RUN apt update && apt install -y libmemcached-dev zlib1g-dev gcc
 
-RUN git clone https://github.com/django/django.git
-
 WORKDIR /tmp/django/tests
 
 RUN pip install --upgrade pip

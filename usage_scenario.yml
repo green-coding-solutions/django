@@ -31,6 +31,8 @@ flow:
     container: gcb-django-tests
     commands:
       - type: console
-        command: python /var/www/django/tests/runtests.py --noinput
-        ignore-errors: true
-
+        command: python /var/www/django/tests/runtests.py --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/, "", $0); print "GMT_SCI_R=" $0 }'
+        shell: bash
+        log-stdout: True
+        read-sci-stdout: True
+        ignore-errors: True
