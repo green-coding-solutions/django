@@ -6,6 +6,9 @@ description: Energy measurements of the Django official unit tests
 
 compose-file: !include compose.yml
 
+sci:
+  R_d: Unit test
+
 services:
   gcb-django-tests:
     setup-commands:
