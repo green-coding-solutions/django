@@ -30,8 +30,13 @@ jobs:
         run: |
           CHANGES=$(git rev-list HEAD..upstream/main --count)
           if [ "$CHANGES" -gt 0 ]; then
-            echo "Updating fork..."
-            git checkout ${{ github.ref_name }}
+            echo "Updating fork main branch..."
+            git checkout main
+            git merge upstream/main
+            git push
+
+            echo "Updating fork github-actions-test-callstring branch..."
+            git checkout github-actions-test-callstring
             git merge upstream/main
             git push
           else
