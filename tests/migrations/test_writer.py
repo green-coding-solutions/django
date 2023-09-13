@@ -77,6 +77,29 @@ class IntFlagEnum(enum.IntFlag):
     B = 2
 
 
+def decorator(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+@decorator
+def function_with_decorator():
+    pass
+
+
+@functools.cache
+def function_with_cache():
+    pass
+
+
+@functools.lru_cache(maxsize=10)
+def function_with_lru_cache():
+    pass
+
+
 class OperationWriterTests(SimpleTestCase):
     def test_empty_signature(self):
         operation = custom_migration_operations.operations.TestOperation()
@@ -565,6 +588,11 @@ class WriterTests(SimpleTestCase):
         string, imports = MigrationWriter.serialize(models.SET(42))
         self.assertEqual(string, "models.SET(42)")
         self.serialize_round_trip(models.SET(42))
+
+    def test_serialize_decorated_functions(self):
+        self.assertSerializedEqual(function_with_decorator)
+        self.assertSerializedEqual(function_with_cache)
+        self.assertSerializedEqual(function_with_lru_cache)
 
     def test_serialize_datetime(self):
         self.assertSerializedEqual(datetime.datetime.now())
