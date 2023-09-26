@@ -168,7 +168,8 @@ Migrations
 Models
 ~~~~~~
 
-* ...
+* :meth:`.QuerySet.explain` now supports the ``generic_plan`` option on
+  PostgreSQL 16+.
 
 Requests and Responses
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -248,7 +249,8 @@ PostgreSQL 13 and higher.
 Miscellaneous
 -------------
 
-* ...
+* In order to improve accessibility, the admin's changelist filter is now
+  rendered in a ``<nav>`` tag instead of a ``<div>``.
 
 .. _deprecated-features-5.1:
 
