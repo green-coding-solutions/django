@@ -820,7 +820,6 @@ class ModelAdminTests(TestCase):
         tests = (
             (ma.log_addition, ADDITION, {"added": {}}),
             (ma.log_change, CHANGE, {"changed": {"fields": ["name", "bio"]}}),
-            (ma.log_deletion, DELETION, str(self.band)),
         )
         for method, flag, message in tests:
             with self.subTest(name=method.__name__):
@@ -831,12 +830,124 @@ class ModelAdminTests(TestCase):
                 self.assertEqual(fetched.content_type, content_type)
                 self.assertEqual(fetched.object_id, str(self.band.pk))
                 self.assertEqual(fetched.user, mock_request.user)
-                if flag == DELETION:
-                    self.assertEqual(fetched.change_message, "")
-                    self.assertEqual(fetched.object_repr, message)
-                else:
-                    self.assertEqual(fetched.change_message, str(message))
-                    self.assertEqual(fetched.object_repr, str(self.band))
+                self.assertEqual(fetched.change_message, str(message))
+                self.assertEqual(fetched.object_repr, str(self.band))
+
+    def test_log_deletions(self):
+        ma = ModelAdmin(Band, self.site)
+        mock_request = MockRequest()
+        mock_request.user = User.objects.create(username="akash")
+        content_type = get_content_type_for_model(self.band)
+        Band.objects.create(
+            name="The Beatles",
+            bio="A legendary rock band from Liverpool.",
+            sign_date=date(1962, 1, 1),
+        )
+        Band.objects.create(
+            name="Mohiner Ghoraguli",
+            bio="A progressive rock band from Calcutta.",
+            sign_date=date(1975, 1, 1),
+        )
+        queryset = Band.objects.all().order_by("-id")[:3]
+        self.assertEqual(len(queryset), 3)
+        with self.assertNumQueries(1):
+            ma.log_deletions(mock_request, queryset)
+        logs = (
+            LogEntry.objects.filter(action_flag=DELETION)
+            .order_by("id")
+            .values_list(
+                "user_id",
+                "content_type",
+                "object_id",
+                "object_repr",
+                "action_flag",
+                "change_message",
+            )
+        )
+        expected_log_values = [
+            (
+                mock_request.user.id,
+                content_type.id,
+                str(obj.pk),
+                str(obj),
+                DELETION,
+                "",
+            )
+            for obj in queryset
+        ]
+        self.assertSequenceEqual(logs, expected_log_values)
+
+    # RemovedInDjango60Warning.
+    def test_log_deletion(self):
+        ma = ModelAdmin(Band, self.site)
+        mock_request = MockRequest()
+        mock_request.user = User.objects.create(username="bill")
+        content_type = get_content_type_for_model(self.band)
+        msg = "ModelAdmin.log_deletion() is deprecated. Use log_deletions() instead."
+        with self.assertWarnsMessage(RemovedInDjango60Warning, msg):
+            created = ma.log_deletion(mock_request, self.band, str(self.band))
+        fetched = LogEntry.objects.filter(action_flag=DELETION).latest("id")
+        self.assertEqual(created, fetched)
+        self.assertEqual(fetched.action_flag, DELETION)
+        self.assertEqual(fetched.content_type, content_type)
+        self.assertEqual(fetched.object_id, str(self.band.pk))
+        self.assertEqual(fetched.user, mock_request.user)
+        self.assertEqual(fetched.change_message, "")
+        self.assertEqual(fetched.object_repr, str(self.band))
+
+    # RemovedInDjango60Warning.
+    def test_log_deletion_fallback(self):
+        class InheritedModelAdmin(ModelAdmin):
+            def log_deletion(self, request, obj, object_repr):
+                return super().log_deletion(request, obj, object_repr)
+
+        ima = InheritedModelAdmin(Band, self.site)
+        mock_request = MockRequest()
+        mock_request.user = User.objects.create(username="akash")
+        content_type = get_content_type_for_model(self.band)
+        Band.objects.create(
+            name="The Beatles",
+            bio="A legendary rock band from Liverpool.",
+            sign_date=date(1962, 1, 1),
+        )
+        Band.objects.create(
+            name="Mohiner Ghoraguli",
+            bio="A progressive rock band from Calcutta.",
+            sign_date=date(1975, 1, 1),
+        )
+        queryset = Band.objects.all().order_by("-id")[:3]
+        self.assertEqual(len(queryset), 3)
+        msg = (
+            "The usage of log_deletion() is deprecated. Implement log_deletions() "
+            "instead."
+        )
+        with self.assertNumQueries(3):
+            with self.assertWarnsMessage(RemovedInDjango60Warning, msg):
+                ima.log_deletions(mock_request, queryset)
+        logs = (
+            LogEntry.objects.filter(action_flag=DELETION)
+            .order_by("id")
+            .values_list(
+                "user_id",
+                "content_type",
+                "object_id",
+                "object_repr",
+                "action_flag",
+                "change_message",
+            )
+        )
+        expected_log_values = [
+            (
+                mock_request.user.id,
+                content_type.id,
+                str(obj.pk),
+                str(obj),
+                DELETION,
+                "",
+            )
+            for obj in queryset
+        ]
+        self.assertSequenceEqual(logs, expected_log_values)
 
     def test_get_autocomplete_fields(self):
         class NameAdmin(ModelAdmin):
