@@ -829,7 +829,11 @@ class SchemaTests(TransactionTestCase):
     def test_add_generated_field_with_kt_model(self):
         class GeneratedFieldKTModel(Model):
             data = JSONField()
-            status = GeneratedField(expression=KT("data__status"), db_persist=True)
+            status = GeneratedField(
+                expression=KT("data__status"),
+                output_field=TextField(),
+                db_persist=True,
+            )
 
             class Meta:
                 app_label = "schema"
@@ -844,24 +848,7 @@ class SchemaTests(TransactionTestCase):
 
     @isolate_apps("schema")
     @skipUnlessDBFeature("supports_stored_generated_columns")
-    def test_add_generated_field_with_string_value(self):
-        class GeneratedFieldStringValueModel(Model):
-            value = GeneratedField(expression=Value("static string"), db_persist=True)
-
-            class Meta:
-                app_label = "schema"
-
-        with CaptureQueriesContext(connection) as ctx:
-            with connection.schema_editor() as editor:
-                editor.create_model(GeneratedFieldStringValueModel)
-        self.assertIs(
-            any("None" in query["sql"] for query in ctx.captured_queries),
-            False,
-        )
-
-    @isolate_apps("schema")
-    @skipUnlessDBFeature("supports_stored_generated_columns")
-    def test_add_generated_field_with_output_field(self):
+    def test_add_generated_field(self):
         class GeneratedFieldOutputFieldModel(Model):
             price = DecimalField(max_digits=7, decimal_places=2)
             vat_price = GeneratedField(
