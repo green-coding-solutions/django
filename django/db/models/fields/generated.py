@@ -16,7 +16,7 @@ class GeneratedField(Field):
     _resolved_expression = None
     output_field = None
 
-    def __init__(self, *, expression, db_persist=None, output_field=None, **kwargs):
+    def __init__(self, *, expression, output_field, db_persist=None, **kwargs):
         if kwargs.setdefault("editable", False):
             raise ValueError("GeneratedField cannot be editable.")
         if not kwargs.setdefault("blank", True):
@@ -29,7 +29,7 @@ class GeneratedField(Field):
             raise ValueError("GeneratedField.db_persist must be True or False.")
 
         self.expression = expression
-        self._output_field = output_field
+        self.output_field = output_field
         self.db_persist = db_persist
         super().__init__(**kwargs)
 
@@ -51,11 +51,6 @@ class GeneratedField(Field):
         self._resolved_expression = self.expression.resolve_expression(
             self._query, allow_joins=False
         )
-        self.output_field = (
-            self._output_field
-            if self._output_field is not None
-            else self._resolved_expression.output_field
-        )
         # Register lookups from the output_field class.
         for lookup_name, lookup in self.output_field.get_class_lookups().items():
             self.register_lookup(lookup, lookup_name=lookup_name)
@@ -68,11 +63,45 @@ class GeneratedField(Field):
 
     def check(self, **kwargs):
         databases = kwargs.get("databases") or []
-        return [
+        errors = [
             *super().check(**kwargs),
             *self._check_supported(databases),
             *self._check_persistence(databases),
         ]
+        output_field_clone = self.output_field.clone()
+        output_field_clone.model = self.model
+        output_field_checks = output_field_clone.check(databases=databases)
+        if output_field_checks:
+            separator = "\n    "
+            error_messages = separator.join(
+                f"{output_check.msg} ({output_check.id})"
+                for output_check in output_field_checks
+                if isinstance(output_check, checks.Error)
+            )
+            if error_messages:
+                errors.append(
+                    checks.Error(
+                        "GeneratedField.output_field has errors:"
+                        f"{separator}{error_messages}",
+                        obj=self,
+                        id="fields.E223",
+                    )
+                )
+            warning_messages = separator.join(
+                f"{output_check.msg} ({output_check.id})"
+                for output_check in output_field_checks
+                if isinstance(output_check, checks.Warning)
+            )
+            if warning_messages:
+                errors.append(
+                    checks.Warning(
+                        "GeneratedField.output_field has warnings:"
+                        f"{separator}{warning_messages}",
+                        obj=self,
+                        id="fields.W224",
+                    )
+                )
+        return errors
 
     def _check_supported(self, databases):
         errors = []
@@ -150,8 +179,7 @@ class GeneratedField(Field):
         del kwargs["editable"]
         kwargs["db_persist"] = self.db_persist
         kwargs["expression"] = self.expression
-        if self._output_field is not None:
-            kwargs["output_field"] = self._output_field
+        kwargs["output_field"] = self.output_field
         return name, path, args, kwargs
 
     def get_internal_type(self):
