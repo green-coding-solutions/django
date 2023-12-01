@@ -20,7 +20,8 @@ jobs:
   #       python-version:
   #         - '3.10'
   #         - '3.11'
-  #         - '3.12-dev'
+  #         - '3.12'
+  #         - '3.13-dev'
   #   name: Windows, SQLite, Python ${{ matrix.python-version }}
   #   continue-on-error: true
   #   steps:
@@ -37,6 +38,27 @@ jobs:
   #     - run: python -m pip install -r tests/requirements/py3.txt -e .
   #     - name: Run tests
   #       run: python tests/runtests.py -v2
+
+  pypy:
+    runs-on: ubuntu-latest
+    name: Ubuntu, SQLite, PyPy3.10
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: pypy-3.10-nightly
+          cache: 'pip'
+          cache-dependency-path: 'tests/requirements/py3.txt'
+      - name: Install libmemcached-dev for pylibmc
+        run: sudo apt-get install libmemcached-dev
+      - name: Install and upgrade packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install -r tests/requirements/py3.txt -e .
+      - name: Run tests
+        run: python tests/runtests.py -v2
 
   javascript-tests:
     runs-on: ubuntu-latest
@@ -85,9 +107,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: 'tests/requirements/py3.txt'
+      - name: Install libmemcached-dev for pylibmc
+        run: sudo apt-get install libmemcached-dev
       - name: Install and upgrade packaging tools
         run: python -m pip install --upgrade pip setuptools wheel
       - run: python -m pip install -r tests/requirements/py3.txt -e .
@@ -136,9 +160,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: 'tests/requirements/py3.txt'
+      - name: Install libmemcached-dev for pylibmc
+        run: sudo apt-get install libmemcached-dev
       - name: Install and upgrade packaging tools
         run: python -m pip install --upgrade pip setuptools wheel
       - run: python -m pip install -r tests/requirements/py3.txt -r tests/requirements/postgres.txt -e .

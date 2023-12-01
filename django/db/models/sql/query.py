@@ -451,13 +451,14 @@ class Query(BaseExpression):
             # Temporarily add aggregate to annotations to allow remaining
             # members of `aggregates` to resolve against each others.
             self.append_annotation_mask([alias])
+            aggregate_refs = aggregate.get_refs()
             refs_subquery |= any(
                 getattr(self.annotations[ref], "contains_subquery", False)
-                for ref in aggregate.get_refs()
+                for ref in aggregate_refs
             )
             refs_window |= any(
                 getattr(self.annotations[ref], "contains_over_clause", True)
-                for ref in aggregate.get_refs()
+                for ref in aggregate_refs
             )
             aggregate = aggregate.replace_expressions(replacements)
             self.annotations[alias] = aggregate
@@ -1256,18 +1257,19 @@ class Query(BaseExpression):
             sql = "(%s)" % sql
         return sql, params
 
-    def resolve_lookup_value(self, value, can_reuse, allow_joins):
+    def resolve_lookup_value(self, value, can_reuse, allow_joins, summarize=False):
         if hasattr(value, "resolve_expression"):
             value = value.resolve_expression(
                 self,
                 reuse=can_reuse,
                 allow_joins=allow_joins,
+                summarize=summarize,
             )
         elif isinstance(value, (list, tuple)):
             # The items of the iterable may be expressions and therefore need
             # to be resolved independently.
             values = (
-                self.resolve_lookup_value(sub_value, can_reuse, allow_joins)
+                self.resolve_lookup_value(sub_value, can_reuse, allow_joins, summarize)
                 for sub_value in value
             )
             type_ = type(value)
@@ -1487,7 +1489,7 @@ class Query(BaseExpression):
             raise FieldError("Joined field references are not permitted in this query")
 
         pre_joins = self.alias_refcount.copy()
-        value = self.resolve_lookup_value(value, can_reuse, allow_joins)
+        value = self.resolve_lookup_value(value, can_reuse, allow_joins, summarize)
         used_joins = {
             k for k, v in self.alias_refcount.items() if v > pre_joins.get(k, 0)
         }
