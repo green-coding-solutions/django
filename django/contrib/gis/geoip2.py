@@ -1,7 +1,19 @@
+"""
+This module houses the GeoIP2 object, a wrapper for the MaxMind GeoIP2(R)
+Python API (https://geoip2.readthedocs.io/). This is an alternative to the
+Python GeoIP2 interface provided by MaxMind.
+
+GeoIP(R) is a registered trademark of MaxMind, Inc.
+
+For IP-based geolocation, this module requires the GeoLite2 Country and City
+datasets, in binary format (CSV will not work!). The datasets may be
+downloaded from MaxMind at https://dev.maxmind.com/geoip/geoip2/geolite2/.
+Grab GeoLite2-Country.mmdb.gz and GeoLite2-City.mmdb.gz, and unzip them in the
+directory corresponding to settings.GEOIP_PATH.
+"""
+
 import socket
 import warnings
-
-import geoip2.database
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -9,7 +21,15 @@ from django.core.validators import validate_ipv46_address
 from django.utils._os import to_path
 from django.utils.deprecation import RemovedInDjango60Warning
 
-from .resources import City, Country
+__all__ = ["HAS_GEOIP2"]
+
+try:
+    import geoip2.database
+except ImportError:
+    HAS_GEOIP2 = False
+else:
+    HAS_GEOIP2 = True
+    __all__ += ["GeoIP2", "GeoIP2Exception"]
 
 # Creating the settings dictionary with any settings, if needed.
 GEOIP_SETTINGS = {
@@ -182,7 +202,22 @@ class GeoIP2:
         may be undefined (None).
         """
         enc_query = self._check_query(query, city=True)
-        return City(self._city.city(enc_query))
+        response = self._city.city(enc_query)
+        region = response.subdivisions[0] if response.subdivisions else None
+        return {
+            "city": response.city.name,
+            "continent_code": response.continent.code,
+            "continent_name": response.continent.name,
+            "country_code": response.country.iso_code,
+            "country_name": response.country.name,
+            "dma_code": response.location.metro_code,
+            "is_in_european_union": response.country.is_in_european_union,
+            "latitude": response.location.latitude,
+            "longitude": response.location.longitude,
+            "postal_code": response.postal.code,
+            "region": region.iso_code if region else None,
+            "time_zone": response.location.time_zone,
+        }
 
     def country_code(self, query):
         "Return the country code for the given IP Address or FQDN."
@@ -200,7 +235,11 @@ class GeoIP2:
         """
         # Returning the country code and name
         enc_query = self._check_query(query, city_or_country=True)
-        return Country(self._country_or_city(enc_query))
+        response = self._country_or_city(enc_query)
+        return {
+            "country_code": response.country.iso_code,
+            "country_name": response.country.name,
+        }
 
     def coords(self, query, ordering=("longitude", "latitude")):
         warnings.warn(
@@ -230,4 +269,9 @@ class GeoIP2:
 
     @classmethod
     def open(cls, full_path, cache):
+        warnings.warn(
+            "GeoIP2.open() is deprecated. Use GeoIP2() instead.",
+            RemovedInDjango60Warning,
+            stacklevel=2,
+        )
         return GeoIP2(full_path, cache)
