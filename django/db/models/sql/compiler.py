@@ -387,18 +387,24 @@ class SQLCompiler:
                     True,
                 )
                 continue
-            if col in self.query.annotations:
-                # References to an expression which is masked out of the SELECT
-                # clause.
+
+            ref, *transforms = col.split(LOOKUP_SEP)
+            if expr := self.query.annotations.get(ref):
                 if self.query.combinator and self.select:
+                    if transforms:
+                        raise NotImplementedError(
+                            "Ordering combined queries by transforms is not "
+                            "implemented."
+                        )
                     # Don't use the resolved annotation because other
-                    # combinated queries might define it differently.
-                    expr = F(col)
-                else:
-                    expr = self.query.annotations[col]
-                    if isinstance(expr, Value):
-                        # output_field must be resolved for constants.
-                        expr = Cast(expr, expr.output_field)
+                    # combined queries might define it differently.
+                    expr = F(ref)
+                if transforms:
+                    for name in transforms:
+                        expr = self.query.try_transform(expr, name)
+                if isinstance(expr, Value):
+                    # output_field must be resolved for constants.
+                    expr = Cast(expr, expr.output_field)
                 yield OrderBy(expr, descending=descending), False
                 continue
 
@@ -1819,6 +1825,7 @@ class SQLInsertCompiler(SQLCompiler):
         )
         opts = self.query.get_meta()
         self.returning_fields = returning_fields
+        cols = []
         with self.connection.cursor() as cursor:
             for sql, params in self.as_sql():
                 cursor.execute(sql, params)
@@ -1829,6 +1836,7 @@ class SQLInsertCompiler(SQLCompiler):
                 and len(self.query.objs) > 1
             ):
                 rows = self.connection.ops.fetch_returned_insert_rows(cursor)
+                cols = [field.get_col(opts.db_table) for field in self.returning_fields]
             elif self.connection.features.can_return_columns_from_insert:
                 assert len(self.query.objs) == 1
                 rows = [
@@ -1837,7 +1845,9 @@ class SQLInsertCompiler(SQLCompiler):
                         self.returning_params,
                     )
                 ]
+                cols = [field.get_col(opts.db_table) for field in self.returning_fields]
             else:
+                cols = [opts.pk.get_col(opts.db_table)]
                 rows = [
                     (
                         self.connection.ops.last_insert_id(
@@ -1847,7 +1857,6 @@ class SQLInsertCompiler(SQLCompiler):
                         ),
                     )
                 ]
-        cols = [field.get_col(opts.db_table) for field in self.returning_fields]
         converters = self.get_converters(cols)
         if converters:
             rows = list(self.apply_converters(rows, converters))
