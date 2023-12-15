@@ -847,6 +847,27 @@ class SchemaTests(TransactionTestCase):
         )
 
     @isolate_apps("schema")
+    @skipUnlessDBFeature("supports_virtual_generated_columns")
+    def test_add_generated_boolean_field(self):
+        class GeneratedBooleanFieldModel(Model):
+            value = IntegerField(null=True)
+            has_value = GeneratedField(
+                expression=Q(value__isnull=False),
+                output_field=BooleanField(),
+                db_persist=False,
+            )
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(GeneratedBooleanFieldModel)
+        obj = GeneratedBooleanFieldModel.objects.create()
+        self.assertIs(obj.has_value, False)
+        obj = GeneratedBooleanFieldModel.objects.create(value=1)
+        self.assertIs(obj.has_value, True)
+
+    @isolate_apps("schema")
     @skipUnlessDBFeature("supports_stored_generated_columns")
     def test_add_generated_field(self):
         class GeneratedFieldOutputFieldModel(Model):
@@ -1057,11 +1078,14 @@ class SchemaTests(TransactionTestCase):
     def test_alter_text_field_to_not_null_with_default_value(self):
         with connection.schema_editor() as editor:
             editor.create_model(Note)
+        note = Note.objects.create(address=None)
         old_field = Note._meta.get_field("address")
         new_field = TextField(blank=True, default="", null=False)
         new_field.set_attributes_from_name("address")
         with connection.schema_editor() as editor:
             editor.alter_field(Note, old_field, new_field, strict=True)
+        note.refresh_from_db()
+        self.assertEqual(note.address, "")
 
     @skipUnlessDBFeature("can_defer_constraint_checks", "can_rollback_ddl")
     def test_alter_fk_checks_deferred_constraints(self):
