@@ -14,7 +14,7 @@ from django.db.models import fields
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.query_utils import Q
 from django.utils.deconstruct import deconstructible
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, classproperty
 from django.utils.hashable import make_hashable
 
 
@@ -402,10 +402,13 @@ class BaseExpression:
         return clone
 
     def replace_expressions(self, replacements):
+        if not replacements:
+            return self
         if replacement := replacements.get(self):
             return replacement
+        if not (source_expressions := self.get_source_expressions()):
+            return self
         clone = self.copy()
-        source_expressions = clone.get_source_expressions()
         clone.set_source_expressions(
             [
                 expr.replace_expressions(replacements) if expr else None
@@ -485,13 +488,18 @@ class BaseExpression:
 class Expression(BaseExpression, Combinable):
     """An expression that can be combined with other expressions."""
 
+    @classproperty
+    @functools.lru_cache(maxsize=128)
+    def _constructor_signature(cls):
+        return inspect.signature(cls.__init__)
+
     @cached_property
     def identity(self):
-        constructor_signature = inspect.signature(self.__init__)
         args, kwargs = self._constructor_args
-        signature = constructor_signature.bind_partial(*args, **kwargs)
+        signature = self._constructor_signature.bind_partial(self, *args, **kwargs)
         signature.apply_defaults()
-        arguments = signature.arguments.items()
+        arguments = iter(signature.arguments.items())
+        next(arguments)
         identity = [self.__class__]
         for arg, value in arguments:
             if isinstance(value, fields.Field):
