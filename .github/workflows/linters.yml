@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: start-measurement
 
@@ -45,13 +45,13 @@ jobs:
           run: flake8
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: get-measurement
           label: 'linters-flake8'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: display-results
 
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: start-measurement
 
@@ -79,13 +79,13 @@ jobs:
           run: isort --check --diff django tests scripts
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: get-measurement
           label: 'linters-isort'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: display-results
 
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: start-measurement
 
@@ -104,13 +104,13 @@ jobs:
         uses: psf/black@stable
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: get-measurement
           label: 'linters-black'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
         with:
           task: display-results
 
