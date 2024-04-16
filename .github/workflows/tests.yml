@@ -72,7 +72,7 @@ jobs:
     name: JavaScript tests
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
@@ -88,12 +88,12 @@ jobs:
       - run: npm test
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'npm tests'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@v2
+        uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: display-results
