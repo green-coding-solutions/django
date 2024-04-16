@@ -129,7 +129,7 @@ class BaseDatabaseSchemaEditor:
     )
     sql_create_unique_index = (
         "CREATE UNIQUE INDEX %(name)s ON %(table)s "
-        "(%(columns)s)%(include)s%(condition)s%(nulls_distinct)s"
+        "(%(columns)s)%(include)s%(nulls_distinct)s%(condition)s"
     )
     sql_rename_index = "ALTER INDEX %(old_name)s RENAME TO %(new_name)s"
     sql_delete_index = "DROP INDEX %(name)s"
@@ -317,9 +317,9 @@ class BaseDatabaseSchemaEditor:
             if default_value is not None:
                 column_default = "DEFAULT " + self._column_default_sql(field)
                 if self.connection.features.requires_literal_defaults:
-                    # Some databases can't take defaults as a parameter (Oracle).
-                    # If this is the case, the individual schema backend should
-                    # implement prepare_default().
+                    # Some databases can't take defaults as a parameter
+                    # (Oracle, SQLite). If this is the case, the individual
+                    # schema backend should implement prepare_default().
                     yield column_default % self.prepare_default(default_value)
                 else:
                     yield column_default
@@ -333,7 +333,9 @@ class BaseDatabaseSchemaEditor:
         ):
             null = True
         if field.generated:
-            yield self._column_generated_sql(field)
+            generated_sql, generated_params = self._column_generated_sql(field)
+            params.extend(generated_params)
+            yield generated_sql
         elif not null:
             yield "NOT NULL"
         elif not self.connection.features.implied_column_null:
@@ -412,12 +414,15 @@ class BaseDatabaseSchemaEditor:
         """Return the sql and params for the field's database default."""
         from django.db.models.expressions import Value
 
-        sql = "%s" if isinstance(field.db_default, Value) else "(%s)"
+        db_default = field._db_default_expression
+        sql = (
+            self._column_default_sql(field) if isinstance(db_default, Value) else "(%s)"
+        )
         query = Query(model=field.model)
         compiler = query.get_compiler(connection=self.connection)
-        default_sql, params = compiler.compile(field.db_default)
+        default_sql, params = compiler.compile(db_default)
         if self.connection.features.requires_literal_defaults:
-            # Some databases doesn't support parameterized defaults (Oracle,
+            # Some databases don't support parameterized defaults (Oracle,
             # SQLite). If this is the case, the individual schema backend
             # should implement prepare_default().
             default_sql %= tuple(self.prepare_default(p) for p in params)
@@ -428,9 +433,10 @@ class BaseDatabaseSchemaEditor:
         """Return the SQL to use in a GENERATED ALWAYS clause."""
         expression_sql, params = field.generated_sql(self.connection)
         persistency_sql = "STORED" if field.db_persist else "VIRTUAL"
-        if params:
+        if self.connection.features.requires_literal_defaults:
             expression_sql = expression_sql % tuple(self.quote_value(p) for p in params)
-        return f"GENERATED ALWAYS AS ({expression_sql}) {persistency_sql}"
+            params = ()
+        return f"GENERATED ALWAYS AS ({expression_sql}) {persistency_sql}", params
 
     @staticmethod
     def _effective_default(field):
@@ -481,7 +487,7 @@ class BaseDatabaseSchemaEditor:
         """
         sql, params = self.table_sql(model)
         # Prevent using [] as params, in the case a literal '%' is used in the
-        # definition.
+        # definition on backends that don't support parametrized DDL.
         self.execute(sql, params or None)
 
         if self.connection.features.supports_comments:
@@ -724,9 +730,9 @@ class BaseDatabaseSchemaEditor:
                 namespace, _ = split_identifier(model._meta.db_table)
                 definition += " " + self.sql_create_column_inline_fk % {
                     "name": self._fk_constraint_name(model, field, constraint_suffix),
-                    "namespace": "%s." % self.quote_name(namespace)
-                    if namespace
-                    else "",
+                    "namespace": (
+                        "%s." % self.quote_name(namespace) if namespace else ""
+                    ),
                     "column": self.quote_name(field.column),
                     "to_table": self.quote_name(to_table),
                     "to_column": self.quote_name(to_column),
@@ -743,7 +749,9 @@ class BaseDatabaseSchemaEditor:
             "column": self.quote_name(field.column),
             "definition": definition,
         }
-        self.execute(sql, params)
+        # Prevent using [] as params, in the case a literal '%' is used in the
+        # definition on backends that don't support parametrized DDL.
+        self.execute(sql, params or None)
         # Drop the default if we need to
         if (
             field.db_default is NOT_PROVIDED
@@ -1636,6 +1644,14 @@ class BaseDatabaseSchemaEditor:
         ):
             old_kwargs.pop("to", None)
             new_kwargs.pop("to", None)
+        # db_default can take many form but result in the same SQL.
+        if (
+            old_kwargs.get("db_default")
+            and new_kwargs.get("db_default")
+            and self.db_default_sql(old_field) == self.db_default_sql(new_field)
+        ):
+            old_kwargs.pop("db_default")
+            new_kwargs.pop("db_default")
         return self.quote_name(old_field.column) != self.quote_name(
             new_field.column
         ) or (old_path, old_args, old_kwargs) != (new_path, new_args, new_kwargs)
@@ -1919,11 +1935,13 @@ class BaseDatabaseSchemaEditor:
         """Return all constraint names matching the columns and conditions."""
         if column_names is not None:
             column_names = [
-                self.connection.introspection.identifier_converter(
-                    truncate_name(name, self.connection.ops.max_name_length())
+                (
+                    self.connection.introspection.identifier_converter(
+                        truncate_name(name, self.connection.ops.max_name_length())
+                    )
+                    if self.connection.features.truncates_names
+                    else self.connection.introspection.identifier_converter(name)
                 )
-                if self.connection.features.truncates_names
-                else self.connection.introspection.identifier_converter(name)
                 for name in column_names
             ]
         with self.connection.cursor() as cursor:
