@@ -122,7 +122,7 @@ class Lookup(Expression):
             # Ensure expression is wrapped in parentheses to respect operator
             # precedence but avoid double wrapping as it can be misinterpreted
             # on some backends (e.g. subqueries on SQLite).
-            if sql and sql[0] != "(":
+            if not isinstance(value, Value) and sql and sql[0] != "(":
                 sql = "(%s)" % sql
             return sql, params
         else:
@@ -273,9 +273,11 @@ class FieldGetDbPrepValueMixin:
         return (
             "%s",
             [
-                v
-                if hasattr(v, "as_sql")
-                else get_db_prep_value(v, connection, prepared=True)
+                (
+                    v
+                    if hasattr(v, "as_sql")
+                    else get_db_prep_value(v, connection, prepared=True)
+                )
                 for v in value
             ],
         )

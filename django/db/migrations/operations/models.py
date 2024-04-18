@@ -56,11 +56,11 @@ class CreateModel(ModelOperation):
         _check_for_duplicates(
             "bases",
             (
-                base._meta.label_lower
-                if hasattr(base, "_meta")
-                else base.lower()
-                if isinstance(base, str)
-                else base
+                (
+                    base._meta.label_lower
+                    if hasattr(base, "_meta")
+                    else base.lower() if isinstance(base, str) else base
+                )
                 for base in self.bases
             ),
         )
@@ -337,6 +337,40 @@ class CreateModel(ModelOperation):
                         options={
                             **self.options,
                             "indexes": options_indexes,
+                        },
+                        bases=self.bases,
+                        managers=self.managers,
+                    ),
+                ]
+            elif isinstance(operation, AddConstraint):
+                return [
+                    CreateModel(
+                        self.name,
+                        fields=self.fields,
+                        options={
+                            **self.options,
+                            "constraints": [
+                                *self.options.get("constraints", []),
+                                operation.constraint,
+                            ],
+                        },
+                        bases=self.bases,
+                        managers=self.managers,
+                    ),
+                ]
+            elif isinstance(operation, RemoveConstraint):
+                options_constraints = [
+                    constraint
+                    for constraint in self.options.get("constraints", [])
+                    if constraint.name != operation.name
+                ]
+                return [
+                    CreateModel(
+                        self.name,
+                        fields=self.fields,
+                        options={
+                            **self.options,
+                            "constraints": options_constraints,
                         },
                         bases=self.bases,
                         managers=self.managers,
