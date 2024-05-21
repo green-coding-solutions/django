@@ -210,7 +210,9 @@ Error Reporting
 File Storage
 ~~~~~~~~~~~~
 
-* ...
+* The :attr:`~django.core.files.storage.FileSystemStorage.allow_overwrite`
+  parameter of :class:`~django.core.files.storage.FileSystemStorage` allows
+  saving new files over existing ones.
 
 File Uploads
 ~~~~~~~~~~~~
@@ -361,7 +363,10 @@ Utilities
 Validators
 ~~~~~~~~~~
 
-* ...
+* The new :class:`~django.core.validators.DomainNameValidator` validates domain
+  names, including internationalized domain names. The new
+  :func:`~django.core.validators.validate_domain_name` function returns an
+  instance of :class:`~django.core.validators.DomainNameValidator`.
 
 .. _backwards-incompatible-5.1:
 
@@ -432,6 +437,11 @@ Miscellaneous
   :class:`~django.core.exceptions.FieldError` when saving a file without a
   ``name``.
 
+* ``ImageField.update_dimension_fields(force=True)`` is no longer called after
+  saving the image to storage. If your storage backend resizes images, the
+  ``width_field`` and ``height_field`` will not match the width and height of
+  the image.
+
 .. _deprecated-features-5.1:
 
 Features deprecated in 5.1
@@ -466,6 +476,14 @@ Miscellaneous
 
 * The ``check`` keyword argument of ``CheckConstraint`` is deprecated in favor
   of ``condition``.
+
+* The undocumented ``OS_OPEN_FLAGS`` property of
+  :class:`~django.core.files.storage.FileSystemStorage` is deprecated. To allow
+  overwriting files in storage, set the new
+  :attr:`~django.core.files.storage.FileSystemStorage.allow_overwrite` option
+  to ``True`` instead.
+* The ``get_cache_name()`` method of ``FieldCacheMixin`` is deprecated in favor
+  of the ``cache_name`` cached property.
 
 Features removed in 5.1
 =======================
