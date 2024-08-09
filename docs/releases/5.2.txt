@@ -194,7 +194,10 @@ Logging
 Management Commands
 ~~~~~~~~~~~~~~~~~~~
 
-* ...
+* A new warning is printed to the console when running :djadmin:`runserver` that
+  ``runserver`` is unsuitable for production. This warning can be hidden by
+  setting the :envvar:`HIDE_PRODUCTION_WARNING` environment variable to
+  ``"true"``.
 
 Migrations
 ~~~~~~~~~~
@@ -240,7 +243,9 @@ Templates
 Tests
 ~~~~~
 
-* ...
+* Stack frames from Django's custom assertions are now hidden. This makes test
+  failures easier to read and enables :option:`test --pdb` to directly enter
+  into the failing test method.
 
 URLs
 ~~~~
