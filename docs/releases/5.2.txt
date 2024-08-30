@@ -128,7 +128,8 @@ Database backends
 Decorators
 ~~~~~~~~~~
 
-* ...
+* :func:`~django.utils.decorators.method_decorator` now supports wrapping
+  asynchronous view methods.
 
 Email
 ~~~~~
@@ -305,6 +306,8 @@ Miscellaneous
 
 * Adding :attr:`.EmailMultiAlternatives.alternatives` is now only supported via
   the :meth:`~.EmailMultiAlternatives.attach_alternative` method.
+
+* The minimum supported version of ``gettext`` is increased from 0.15 to 0.19.
 
 .. _deprecated-features-5.2:
 
