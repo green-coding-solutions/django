@@ -241,7 +241,9 @@ Security
 Serialization
 ~~~~~~~~~~~~~
 
-* ...
+* Each serialization format now defines a ``Deserializer`` class, rather than a
+  function, to improve extensibility when defining a
+  :ref:`custom serialization format <custom-serialization-formats>`.
 
 Signals
 ~~~~~~~
@@ -259,6 +261,11 @@ Tests
 * Stack frames from Django's custom assertions are now hidden. This makes test
   failures easier to read and enables :option:`test --pdb` to directly enter
   into the failing test method.
+
+* Data loaded from :attr:`~django.test.TransactionTestCase.fixtures` and from
+  migrations enabled with :ref:`serialized_rollback=True
+  <test-case-serialized-rollback>` are now available during
+  ``TransactionTestCase.setUpClass()``.
 
 URLs
 ~~~~
