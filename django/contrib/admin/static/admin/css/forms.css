@@ -169,6 +169,10 @@ form .aligned select + div.help {
     padding-left: 10px;
 }
 
+form .aligned select option:checked {
+    background-color: var(--selected-row);
+}
+
 form .aligned ul li {
     list-style: none;
 }
@@ -460,8 +464,6 @@ body.popup .submit-row {
 
 .inline-group div.add-row a,
 .inline-group .tabular tr.add-row td a {
-    background: url(../img/icon-addlink.svg) 0 1px no-repeat;
-    padding-left: 16px;
     font-size: 0.75rem;
 }
 
