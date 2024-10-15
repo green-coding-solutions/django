@@ -82,6 +82,10 @@ Minor features
   improves performance. See :ref:`adding an async interface
   <writing-authentication-backends-async-interface>` for more details.
 
+* The :ref:`password validator classes <included-password-validators>`
+  now have a new method ``get_error_message()``, which can be overridden in
+  subclasses to customize the error messages.
+
 :mod:`django.contrib.contenttypes`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -229,6 +233,10 @@ Management Commands
   ``runserver`` is unsuitable for production. This warning can be hidden by
   setting the :envvar:`HIDE_PRODUCTION_WARNING` environment variable to
   ``"true"``.
+
+* The :djadmin:`makemigrations` and :djadmin:`migrate` commands  have a new
+  ``Command.autodetector`` attribute for subclasses to override in order to use
+  a custom autodetector class.
 
 Migrations
 ~~~~~~~~~~
