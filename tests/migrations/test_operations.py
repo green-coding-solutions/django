@@ -4366,6 +4366,81 @@ class OperationTests(OperationTestBase):
             {"model_name": "Pony", "name": "test_remove_constraint_pony_pink_gt_2"},
         )
 
+    def test_alter_constraint(self):
+        constraint = models.UniqueConstraint(
+            fields=["pink"], name="test_alter_constraint_pony_fields_uq"
+        )
+        project_state = self.set_up_test_model(
+            "test_alterconstraint", constraints=[constraint]
+        )
+
+        new_state = project_state.clone()
+        violation_error_message = "Pink isn't unique"
+        uq_constraint = models.UniqueConstraint(
+            fields=["pink"],
+            name="test_alter_constraint_pony_fields_uq",
+            violation_error_message=violation_error_message,
+        )
+        uq_operation = migrations.AlterConstraint(
+            "Pony", "test_alter_constraint_pony_fields_uq", uq_constraint
+        )
+        self.assertEqual(
+            uq_operation.describe(),
+            "Alter constraint test_alter_constraint_pony_fields_uq on Pony",
+        )
+        self.assertEqual(
+            uq_operation.formatted_description(),
+            "~ Alter constraint test_alter_constraint_pony_fields_uq on Pony",
+        )
+        self.assertEqual(
+            uq_operation.migration_name_fragment,
+            "alter_pony_test_alter_constraint_pony_fields_uq",
+        )
+
+        uq_operation.state_forwards("test_alterconstraint", new_state)
+        self.assertEqual(
+            project_state.models["test_alterconstraint", "pony"]
+            .options["constraints"][0]
+            .violation_error_message,
+            "Constraint “%(name)s” is violated.",
+        )
+        self.assertEqual(
+            new_state.models["test_alterconstraint", "pony"]
+            .options["constraints"][0]
+            .violation_error_message,
+            violation_error_message,
+        )
+
+        with connection.schema_editor() as editor, self.assertNumQueries(0):
+            uq_operation.database_forwards(
+                "test_alterconstraint", editor, project_state, new_state
+            )
+        self.assertConstraintExists(
+            "test_alterconstraint_pony",
+            "test_alter_constraint_pony_fields_uq",
+            value=False,
+        )
+        with connection.schema_editor() as editor, self.assertNumQueries(0):
+            uq_operation.database_backwards(
+                "test_alterconstraint", editor, project_state, new_state
+            )
+        self.assertConstraintExists(
+            "test_alterconstraint_pony",
+            "test_alter_constraint_pony_fields_uq",
+            value=False,
+        )
+        definition = uq_operation.deconstruct()
+        self.assertEqual(definition[0], "AlterConstraint")
+        self.assertEqual(definition[1], [])
+        self.assertEqual(
+            definition[2],
+            {
+                "model_name": "Pony",
+                "name": "test_alter_constraint_pony_fields_uq",
+                "constraint": uq_constraint,
+            },
+        )
+
     def test_add_partial_unique_constraint(self):
         project_state = self.set_up_test_model("test_addpartialuniqueconstraint")
         partial_unique_constraint = models.UniqueConstraint(
@@ -6211,6 +6286,61 @@ class OperationTests(OperationTestBase):
         pony_new = Pony.objects.create(weight=20)
         self.assertEqual(pony_new.generated, 1)
         self.assertEqual(pony_new.static, 2)
+
+    def test_composite_pk_operations(self):
+        app_label = "test_d8d90af6"
+        project_state = self.set_up_test_model(app_label)
+        operation_1 = migrations.AddField(
+            "Pony", "pk", models.CompositePrimaryKey("id", "pink")
+        )
+        operation_2 = migrations.AlterField("Pony", "id", models.IntegerField())
+        operation_3 = migrations.RemoveField("Pony", "pk")
+        table_name = f"{app_label}_pony"
+
+        # 1. Add field (pk).
+        new_state = project_state.clone()
+        operation_1.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_1.database_forwards(app_label, editor, project_state, new_state)
+        self.assertColumnNotExists(table_name, "pk")
+        Pony = new_state.apps.get_model(app_label, "pony")
+        obj_1 = Pony.objects.create(weight=1)
+        msg = (
+            f"obj_1={obj_1}, "
+            f"obj_1.id={obj_1.id}, "
+            f"obj_1.pink={obj_1.pink}, "
+            f"obj_1.pk={obj_1.pk}, "
+            f"Pony._meta.pk={repr(Pony._meta.pk)}, "
+            f"Pony._meta.get_field('id')={repr(Pony._meta.get_field('id'))}"
+        )
+        self.assertEqual(obj_1.pink, 3, msg)
+        self.assertEqual(obj_1.pk, (obj_1.id, obj_1.pink), msg)
+
+        # 2. Alter field (id -> IntegerField()).
+        project_state, new_state = new_state, new_state.clone()
+        operation_2.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_2.database_forwards(app_label, editor, project_state, new_state)
+        Pony = new_state.apps.get_model(app_label, "pony")
+        obj_1 = Pony.objects.get(id=obj_1.id)
+        self.assertEqual(obj_1.pink, 3)
+        self.assertEqual(obj_1.pk, (obj_1.id, obj_1.pink))
+        obj_2 = Pony.objects.create(id=2, weight=2)
+        self.assertEqual(obj_2.id, 2)
+        self.assertEqual(obj_2.pink, 3)
+        self.assertEqual(obj_2.pk, (obj_2.id, obj_2.pink))
+
+        # 3. Remove field (pk).
+        project_state, new_state = new_state, new_state.clone()
+        operation_3.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_3.database_forwards(app_label, editor, project_state, new_state)
+        Pony = new_state.apps.get_model(app_label, "pony")
+        obj_1 = Pony.objects.get(id=obj_1.id)
+        self.assertEqual(obj_1.pk, obj_1.id)
+        obj_2 = Pony.objects.get(id=obj_2.id)
+        self.assertEqual(obj_2.id, 2)
+        self.assertEqual(obj_2.pk, obj_2.id)
 
 
 class SwappableOperationTests(OperationTestBase):
