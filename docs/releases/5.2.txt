@@ -197,6 +197,9 @@ Database backends
   instead of ``utf8``, which is an alias for the deprecated character set
   ``utf8mb3``.
 
+* Oracle backends now support :ref:`connection pools <oracle-pool>`, by setting
+  ``"pool"`` in the :setting:`OPTIONS` part of your database configuration.
+
 Decorators
 ~~~~~~~~~~
 
@@ -252,6 +255,9 @@ Forms
 * The new ``field_id`` argument for :class:`~django.forms.ErrorList` allows an
   HTML ``id`` attribute to be added in the error template. See
   :attr:`.ErrorList.field_id` for details.
+
+* An :attr:`~django.forms.BoundField.aria_describedby` property is added to
+  ``BoundField`` to ease use of this HTML attribute in templates.
 
 Generic Views
 ~~~~~~~~~~~~~
@@ -463,6 +469,9 @@ Miscellaneous
   * :meth:`.QuerySet.aget_or_create`
   * :meth:`.QuerySet.update_or_create`
   * :meth:`.QuerySet.aupdate_or_create`
+
+* The minimum supported version of ``oracledb`` is increased from 1.3.2 to
+  2.3.0.
 
 .. _deprecated-features-5.2:
 
