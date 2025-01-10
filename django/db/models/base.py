@@ -1118,10 +1118,7 @@ class Model(AltersData, metaclass=ModelBase):
             and not force_insert
             and not force_update
             and self._state.adding
-            and (
-                (meta.pk.default and meta.pk.default is not NOT_PROVIDED)
-                or (meta.pk.db_default and meta.pk.db_default is not NOT_PROVIDED)
-            )
+            and all(f.has_default() or f.has_db_default() for f in meta.pk_fields)
         ):
             force_insert = True
         # If possible, try an UPDATE. If that doesn't update anything, do an INSERT.
