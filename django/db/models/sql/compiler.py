@@ -8,8 +8,7 @@ from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import DatabaseError, NotSupportedError
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.expressions import ColPairs, F, OrderBy, RawSQL, Ref, Value
-from django.db.models.fields import composite
-from django.db.models.fields.composite import CompositePrimaryKey
+from django.db.models.fields import AutoField, composite
 from django.db.models.functions import Cast, Random
 from django.db.models.lookups import Lookup
 from django.db.models.query_utils import select_related_descend
@@ -1911,8 +1910,9 @@ class SQLInsertCompiler(SQLCompiler):
                     )
                 ]
                 cols = [field.get_col(opts.db_table) for field in self.returning_fields]
-            elif isinstance(opts.pk, CompositePrimaryKey):
-                returning_field = returning_fields[0]
+            elif returning_fields and isinstance(
+                returning_field := returning_fields[0], AutoField
+            ):
                 cols = [returning_field.get_col(opts.db_table)]
                 rows = [
                     (
@@ -1924,21 +1924,12 @@ class SQLInsertCompiler(SQLCompiler):
                     )
                 ]
             else:
-                cols = [opts.pk.get_col(opts.db_table)]
-                rows = [
-                    (
-                        self.connection.ops.last_insert_id(
-                            cursor,
-                            opts.db_table,
-                            opts.pk.column,
-                        ),
-                    )
-                ]
+                # Backend doesn't support returning fields and no auto-field
+                # that can be retrieved from `last_insert_id` was specified.
+                return []
         converters = self.get_converters(cols)
         if converters:
             rows = self.apply_converters(rows, converters)
-        if self.has_composite_fields(cols):
-            rows = self.composite_fields_to_tuples(rows, cols)
         return list(rows)
 
 
