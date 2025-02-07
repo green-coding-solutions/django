@@ -670,21 +670,10 @@ class QuerySet(AltersData):
     acreate.alters_data = True
 
     def _prepare_for_bulk_create(self, objs):
-        from django.db.models.expressions import DatabaseDefault
-
-        connection = connections[self.db]
         for obj in objs:
             if not obj._is_pk_set():
                 # Populate new PK values.
                 obj.pk = obj._meta.pk.get_pk_value_on_save(obj)
-            if not connection.features.supports_default_keyword_in_bulk_insert:
-                for field in obj._meta.fields:
-                    if field.generated:
-                        continue
-                    value = getattr(obj, field.attname)
-                    if isinstance(value, DatabaseDefault):
-                        setattr(obj, field.attname, field.db_default)
-
             obj._prepare_related_fields_for_save(operation_name="bulk_create")
 
     def _check_bulk_create_options(
@@ -874,11 +863,12 @@ class QuerySet(AltersData):
         objs = tuple(objs)
         if not all(obj._is_pk_set() for obj in objs):
             raise ValueError("All bulk_update() objects must have a primary key set.")
-        fields = [self.model._meta.get_field(name) for name in fields]
+        opts = self.model._meta
+        fields = [opts.get_field(name) for name in fields]
         if any(not f.concrete or f.many_to_many for f in fields):
             raise ValueError("bulk_update() can only be used with concrete fields.")
-        all_pk_fields = set(self.model._meta.pk_fields)
-        for parent in self.model._meta.all_parents:
+        all_pk_fields = set(opts.pk_fields)
+        for parent in opts.all_parents:
             all_pk_fields.update(parent._meta.pk_fields)
         if any(f in all_pk_fields for f in fields):
             raise ValueError("bulk_update() cannot be used with primary key fields.")
@@ -892,7 +882,9 @@ class QuerySet(AltersData):
         # and once in the WHEN. Each field will also have one CAST.
         self._for_write = True
         connection = connections[self.db]
-        max_batch_size = connection.ops.bulk_batch_size(["pk", "pk"] + fields, objs)
+        max_batch_size = connection.ops.bulk_batch_size(
+            [opts.pk, opts.pk] + fields, objs
+        )
         batch_size = min(batch_size, max_batch_size) if batch_size else max_batch_size
         requires_casting = connection.features.requires_casted_case_in_updates
         batches = (objs[i : i + batch_size] for i in range(0, len(objs), batch_size))
@@ -1643,14 +1635,16 @@ class QuerySet(AltersData):
         )
         annotations = {}
         for arg in args:
-            # The default_alias property may raise a TypeError.
+            # The default_alias property raises TypeError if default_alias
+            # can't be set automatically or AttributeError if it isn't an
+            # attribute.
             try:
                 if arg.default_alias in kwargs:
                     raise ValueError(
                         "The named annotation '%s' conflicts with the "
                         "default name for another annotation." % arg.default_alias
                     )
-            except TypeError:
+            except (TypeError, AttributeError):
                 raise TypeError("Complex annotations require an alias")
             annotations[arg.default_alias] = arg
         annotations.update(kwargs)

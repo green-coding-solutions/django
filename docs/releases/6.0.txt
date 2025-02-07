@@ -48,7 +48,8 @@ Minor features
 :mod:`django.contrib.admindocs`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ...
+* The new :attr:`.AdminSite.password_change_form` attribute allows customizing
+  the form used in the admin site password change view.
 
 :mod:`django.contrib.auth`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,7 +65,8 @@ Minor features
 :mod:`django.contrib.gis`
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ...
+* The new :attr:`.GEOSGeometry.hasm` property checks whether the geometry has
+  the M dimension.
 
 :mod:`django.contrib.messages`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

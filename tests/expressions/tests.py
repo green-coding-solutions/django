@@ -51,6 +51,7 @@ from django.db.models.expressions import (
     Combinable,
     CombinedExpression,
     NegatedExpression,
+    OutputFieldIsNoneError,
     RawSQL,
     Ref,
 )
@@ -1275,6 +1276,23 @@ class IterableLookupInnerExpressionsTests(TestCase):
                 queryset = Result.objects.filter(**{lookup: within_experiment_time})
                 self.assertSequenceEqual(queryset, [r1])
 
+    def test_relabeled_clone_rhs(self):
+        Number.objects.bulk_create([Number(integer=1), Number(integer=2)])
+        self.assertIs(
+            Number.objects.filter(
+                # Ensure iterable of expressions are properly re-labelled on
+                # subquery pushdown. If the inner query __range right-hand-side
+                # members are not relabelled they will point at the outer query
+                # alias and this test will fail.
+                Exists(
+                    Number.objects.exclude(pk=OuterRef("pk")).filter(
+                        integer__range=(F("integer"), F("integer"))
+                    )
+                )
+            ).exists(),
+            True,
+        )
+
 
 class FTests(SimpleTestCase):
     def test_deepcopy(self):
@@ -2328,6 +2346,16 @@ class ValueTests(TestCase):
         Time.objects.create()
         time = Time.objects.annotate(one=Value(1, output_field=DecimalField())).first()
         self.assertEqual(time.one, 1)
+
+    def test_output_field_is_none_error(self):
+        with self.assertRaises(OutputFieldIsNoneError):
+            Employee.objects.annotate(custom_expression=Value(None)).first()
+
+    def test_output_field_or_none_property_not_cached(self):
+        expression = Value(None, output_field=None)
+        self.assertIsNone(expression._output_field_or_none)
+        expression.output_field = BooleanField()
+        self.assertIsInstance(expression._output_field_or_none, BooleanField)
 
     def test_resolve_output_field(self):
         value_types = [
