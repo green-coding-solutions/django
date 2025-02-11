@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import CommandError, call_command
 from django.core.management.commands import shell
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase
 from django.test.utils import (
     captured_stdin,
@@ -85,13 +85,14 @@ class ShellCommandTestCase(SimpleTestCase):
     def test_ipython(self):
         cmd = shell.Command()
         mock_ipython = mock.Mock(start_ipython=mock.MagicMock())
+        options = {"verbosity": 0, "no_imports": False}
 
         with mock.patch.dict(sys.modules, {"IPython": mock_ipython}):
-            cmd.ipython({"verbosity": 0, "no_imports": False})
+            cmd.ipython(options)
 
         self.assertEqual(
             mock_ipython.start_ipython.mock_calls,
-            [mock.call(argv=[], user_ns=cmd.get_and_report_namespace(0))],
+            [mock.call(argv=[], user_ns=cmd.get_and_report_namespace(**options))],
         )
 
     @mock.patch("django.core.management.commands.shell.select.select")  # [1]
@@ -106,12 +107,14 @@ class ShellCommandTestCase(SimpleTestCase):
     def test_bpython(self):
         cmd = shell.Command()
         mock_bpython = mock.Mock(embed=mock.MagicMock())
+        options = {"verbosity": 0, "no_imports": False}
 
         with mock.patch.dict(sys.modules, {"bpython": mock_bpython}):
-            cmd.bpython({"verbosity": 0, "no_imports": False})
+            cmd.bpython(options)
 
         self.assertEqual(
-            mock_bpython.embed.mock_calls, [mock.call(cmd.get_and_report_namespace(0))]
+            mock_bpython.embed.mock_calls,
+            [mock.call(cmd.get_and_report_namespace(**options))],
         )
 
     @mock.patch("django.core.management.commands.shell.select.select")  # [1]
@@ -126,13 +129,14 @@ class ShellCommandTestCase(SimpleTestCase):
     def test_python(self):
         cmd = shell.Command()
         mock_code = mock.Mock(interact=mock.MagicMock())
+        options = {"verbosity": 0, "no_startup": True, "no_imports": False}
 
         with mock.patch.dict(sys.modules, {"code": mock_code}):
-            cmd.python({"verbosity": 0, "no_startup": True, "no_imports": False})
+            cmd.python(options)
 
         self.assertEqual(
             mock_code.interact.mock_calls,
-            [mock.call(local=cmd.get_and_report_namespace(0))],
+            [mock.call(local=cmd.get_and_report_namespace(**options))],
         )
 
     # [1] Patch select to prevent tests failing when the test suite is run
@@ -270,6 +274,44 @@ class ShellCommandAutoImportsTestCase(SimpleTestCase):
             "  from django.contrib.contenttypes.models import ContentType\n"
             "  from shell.models import Phone, Marker",
         )
+
+    def test_message_with_stdout_one_object(self):
+        class TestCommand(shell.Command):
+            def get_namespace(self):
+                return {"connection": connection}
+
+        with captured_stdout() as stdout:
+            TestCommand().get_and_report_namespace(verbosity=2)
+
+        cases = {
+            0: "",
+            1: "1 object imported automatically (use -v 2 for details).",
+            2: (
+                "1 object imported automatically, including:\n\n"
+                "  from django.utils.connection import connection"
+            ),
+        }
+        for verbosity, expected in cases.items():
+            with self.subTest(verbosity=verbosity):
+                with captured_stdout() as stdout:
+                    TestCommand().get_and_report_namespace(verbosity=verbosity)
+                    self.assertEqual(stdout.getvalue().strip(), expected)
+
+    def test_message_with_stdout_zero_objects(self):
+        class TestCommand(shell.Command):
+            def get_namespace(self):
+                return {}
+
+        cases = {
+            0: "",
+            1: "0 objects imported automatically.",
+            2: "0 objects imported automatically.",
+        }
+        for verbosity, expected in cases.items():
+            with self.subTest(verbosity=verbosity):
+                with captured_stdout() as stdout:
+                    TestCommand().get_and_report_namespace(verbosity=verbosity)
+                    self.assertEqual(stdout.getvalue().strip(), expected)
 
     @override_settings(INSTALLED_APPS=["shell", "django.contrib.contenttypes"])
     def test_message_with_stdout_listing_objects_with_isort(self):
