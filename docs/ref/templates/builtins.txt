@@ -423,9 +423,14 @@ Variable                    Description
                             loop (0-indexed)
 ``forloop.first``           True if this is the first time through the loop
 ``forloop.last``            True if this is the last time through the loop
+``forloop.length``          The length of the loop
 ``forloop.parentloop``      For nested loops, this is the loop surrounding
                             the current one
 ==========================  ===============================================
+
+.. versionchanged:: 6.0
+
+    The variable ``forloop.length`` was added.
 
 ``for`` ... ``empty``
 ---------------------
@@ -2919,17 +2924,6 @@ Django's built-in :tfilter:`escape` filter. The default value for
     If ``urlize`` is applied to text that already contains HTML markup, or to
     email addresses that contain single quotes (``'``), things won't work as
     expected. Apply this filter only to plain text.
-
-.. warning::
-
-    Using ``urlize`` or ``urlizetrunc`` can incur a performance penalty, which
-    can become severe when applied to user controlled values such as content
-    stored in a :class:`~django.db.models.TextField`. You can use
-    :tfilter:`truncatechars` to add a limit to such inputs:
-
-    .. code-block:: html+django
-
-        {{ value|truncatechars:500|urlize }}
 
 .. templatefilter:: urlizetrunc
 
