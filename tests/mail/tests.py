@@ -19,6 +19,7 @@ from textwrap import dedent
 from unittest import mock, skipUnless
 
 from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import (
     DNS_NAME,
     BadHeaderError,
@@ -35,6 +36,7 @@ from django.core.mail.backends import console, dummy, filebased, locmem, smtp
 from django.core.mail.message import sanitize_address
 from django.test import SimpleTestCase, override_settings
 from django.test.utils import requires_tz_support
+from django.utils.deprecation import RemovedInDjango70Warning
 from django.utils.translation import gettext_lazy
 
 try:
@@ -1104,16 +1106,10 @@ class MailTests(MailTestsMixin, SimpleTestCase):
             )
         self.assertIsInstance(mail.get_connection(), locmem.EmailBackend)
 
-    @override_settings(
-        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-        ADMINS=[("nobody", "nobody@example.com")],
-        MANAGERS=[("nobody", "nobody@example.com")],
-    )
-    def test_connection_arg(self):
-        """Test connection argument to send_mail(), et. al."""
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_connection_arg_send_mail(self):
         mail.outbox = []
-
-        # Send using non-default connection
+        # Send using non-default connection.
         connection = mail.get_connection("mail.custombackend.EmailBackend")
         send_mail(
             "Subject",
@@ -1126,6 +1122,10 @@ class MailTests(MailTestsMixin, SimpleTestCase):
         self.assertEqual(len(connection.test_outbox), 1)
         self.assertEqual(connection.test_outbox[0].subject, "Subject")
 
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_connection_arg_send_mass_mail(self):
+        mail.outbox = []
+        # Send using non-default connection.
         connection = mail.get_connection("mail.custombackend.EmailBackend")
         send_mass_mail(
             [
@@ -1139,12 +1139,26 @@ class MailTests(MailTestsMixin, SimpleTestCase):
         self.assertEqual(connection.test_outbox[0].subject, "Subject1")
         self.assertEqual(connection.test_outbox[1].subject, "Subject2")
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        ADMINS=["nobody@example.com"],
+    )
+    def test_connection_arg_mail_admins(self):
+        mail.outbox = []
+        # Send using non-default connection.
         connection = mail.get_connection("mail.custombackend.EmailBackend")
         mail_admins("Admin message", "Content", connection=connection)
         self.assertEqual(mail.outbox, [])
         self.assertEqual(len(connection.test_outbox), 1)
         self.assertEqual(connection.test_outbox[0].subject, "[Django] Admin message")
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        MANAGERS=["nobody@example.com"],
+    )
+    def test_connection_arg_mail_managers(self):
+        mail.outbox = []
+        # Send using non-default connection.
         connection = mail.get_connection("mail.custombackend.EmailBackend")
         mail_managers("Manager message", "Content", connection=connection)
         self.assertEqual(mail.outbox, [])
@@ -1765,7 +1779,32 @@ class BaseEmailBackendTests(MailTestsMixin):
         self.assertEqual(message.get_payload(1).get_payload(), "HTML Content")
         self.assertEqual(message.get_payload(1).get_content_type(), "text/html")
 
-    @override_settings(MANAGERS=[("nobody", "nobody@example.com")])
+    def test_mail_admins_and_managers(self):
+        tests = (
+            # The ADMINS and MANAGERS settings are lists of email strings.
+            ['"Name, Full" <test@example.com>'],
+            # Lists and tuples are interchangeable.
+            ["test@example.com", "other@example.com"],
+            ("test@example.com", "other@example.com"),
+            # Lazy strings are supported.
+            [gettext_lazy("test@example.com")],
+        )
+        for setting, mail_func in (
+            ("ADMINS", mail_admins),
+            ("MANAGERS", mail_managers),
+        ):
+            for value in tests:
+                self.flush_mailbox()
+                with (
+                    self.subTest(setting=setting, value=value),
+                    self.settings(**{setting: value}),
+                ):
+                    mail_func("subject", "content")
+                    message = self.get_the_message()
+                    expected_to = ", ".join([str(address) for address in value])
+                    self.assertEqual(message.get_all("to"), [expected_to])
+
+    @override_settings(MANAGERS=["nobody@example.com"])
     def test_html_mail_managers(self):
         """Test html_message argument to mail_managers"""
         mail_managers("Subject", "Content", html_message="HTML Content")
@@ -1780,7 +1819,7 @@ class BaseEmailBackendTests(MailTestsMixin):
         self.assertEqual(message.get_payload(1).get_payload(), "HTML Content")
         self.assertEqual(message.get_payload(1).get_content_type(), "text/html")
 
-    @override_settings(ADMINS=[("nobody", "nobody@example.com")])
+    @override_settings(ADMINS=["nobody@example.com"])
     def test_html_mail_admins(self):
         """Test html_message argument to mail_admins"""
         mail_admins("Subject", "Content", html_message="HTML Content")
@@ -1796,22 +1835,20 @@ class BaseEmailBackendTests(MailTestsMixin):
         self.assertEqual(message.get_payload(1).get_content_type(), "text/html")
 
     @override_settings(
-        ADMINS=[("nobody", "nobody+admin@example.com")],
-        MANAGERS=[("nobody", "nobody+manager@example.com")],
+        ADMINS=["nobody+admin@example.com"],
+        MANAGERS=["nobody+manager@example.com"],
     )
     def test_manager_and_admin_mail_prefix(self):
         """
         String prefix + lazy translated subject = bad output
         Regression for #13494
         """
-        mail_managers(gettext_lazy("Subject"), "Content")
-        message = self.get_the_message()
-        self.assertEqual(message.get("subject"), "[Django] Subject")
-
-        self.flush_mailbox()
-        mail_admins(gettext_lazy("Subject"), "Content")
-        message = self.get_the_message()
-        self.assertEqual(message.get("subject"), "[Django] Subject")
+        for mail_func in [mail_managers, mail_admins]:
+            with self.subTest(mail_func=mail_func):
+                mail_func(gettext_lazy("Subject"), "Content")
+                message = self.get_the_message()
+                self.assertEqual(message.get("subject"), "[Django] Subject")
+                self.flush_mailbox()
 
     @override_settings(ADMINS=[], MANAGERS=[])
     def test_empty_admins(self):
@@ -1819,29 +1856,60 @@ class BaseEmailBackendTests(MailTestsMixin):
         mail_admins/mail_managers doesn't connect to the mail server
         if there are no recipients (#9383)
         """
-        mail_admins("hi", "there")
-        self.assertEqual(self.get_mailbox_content(), [])
-        mail_managers("hi", "there")
-        self.assertEqual(self.get_mailbox_content(), [])
+        for mail_func in [mail_managers, mail_admins]:
+            with self.subTest(mail_func=mail_func):
+                mail_func("hi", "there")
+                self.assertEqual(self.get_mailbox_content(), [])
 
-    def test_wrong_admins_managers(self):
+    # RemovedInDjango70Warning.
+    def test_deprecated_admins_managers_tuples(self):
         tests = (
-            "test@example.com",
-            ("test@example.com",),
-            ["test@example.com", "other@example.com"],
-            ("test@example.com", "other@example.com"),
+            [("nobody", "nobody@example.com"), ("other", "other@example.com")],
+            [["nobody", "nobody@example.com"], ["other", "other@example.com"]],
         )
         for setting, mail_func in (
             ("ADMINS", mail_admins),
             ("MANAGERS", mail_managers),
         ):
-            msg = "The %s setting must be a list of 2-tuples." % setting
+            msg = (
+                f"Using (name, address) pairs in the {setting} setting is deprecated."
+                " Replace with a list of email address strings."
+            )
+            for value in tests:
+                self.flush_mailbox()
+                with (
+                    self.subTest(setting=setting, value=value),
+                    self.settings(**{setting: value}),
+                ):
+                    with self.assertWarnsMessage(RemovedInDjango70Warning, msg):
+                        mail_func("subject", "content")
+                    message = self.get_the_message()
+                    expected_to = ", ".join([str(address) for _, address in value])
+                    self.assertEqual(message.get_all("to"), [expected_to])
+
+    def test_wrong_admins_managers(self):
+        tests = (
+            "test@example.com",
+            gettext_lazy("test@example.com"),
+            # RemovedInDjango70Warning: uncomment these cases when support for
+            # deprecated (name, address) tuples is removed.
+            #    [("nobody", "nobody@example.com"), ("other", "other@example.com")],
+            #    [["nobody", "nobody@example.com"], ["other", "other@example.com"]],
+            [("name", "test", "example.com")],
+            [("Name <test@example.com",)],
+            [[]],
+        )
+        for setting, mail_func in (
+            ("ADMINS", mail_admins),
+            ("MANAGERS", mail_managers),
+        ):
+            msg = f"The {setting} setting must be a list of email address strings."
             for value in tests:
                 with (
                     self.subTest(setting=setting, value=value),
                     self.settings(**{setting: value}),
                 ):
-                    with self.assertRaisesMessage(ValueError, msg):
+                    with self.assertRaisesMessage(ImproperlyConfigured, msg):
                         mail_func("subject", "content")
 
     def test_message_cc_header(self):
