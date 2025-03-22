@@ -199,6 +199,14 @@ Models
   :ref:`a forced update <ref-models-force-insert>` results in no affected rows,
   instead of a generic :exc:`django.db.DatabaseError`.
 
+Pagination
+~~~~~~~~~~
+
+* The new :class:`~django.core.paginator.AsyncPaginator` and
+  :class:`~django.core.paginator.AsyncPage` provide async implementations of
+  :class:`~django.core.paginator.Paginator` and
+  :class:`~django.core.paginator.Page` respectively.
+
 Requests and Responses
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -293,7 +301,8 @@ of each library are the first to add or confirm compatibility with Python 3.12:
 Miscellaneous
 -------------
 
-* ...
+* The :ref:`JSON <serialization-formats-json>` serializer now writes a newline
+  at the end of the output, even without the ``indent`` option set.
 
 .. _deprecated-features-6.0:
 
@@ -311,6 +320,18 @@ Miscellaneous
 
 * The PostgreSQL ``OrderableAggMixin`` is deprecated in favor of the
   ``order_by`` attribute now available on the ``Aggregate`` class.
+
+* The default protocol in :tfilter:`urlize` and :tfilter:`urlizetrunc` will
+  change from HTTP to HTTPS in Django 7.0. Set the transitional setting
+  ``URLIZE_ASSUME_HTTPS`` to ``True`` to opt into assuming HTTPS during the
+  Django 6.x release cycle.
+
+* ``URLIZE_ASSUME_HTTPS`` transitional setting is deprecated.
+
+* Setting :setting:`ADMINS` or :setting:`MANAGERS` to a list of (name, address)
+  tuples is deprecated. Set to a list of email address strings instead. Django
+  never used the name portion. To include a name, format the address string as
+  ``'"Name" <address>'`` or use Python's :func:`email.utils.formataddr`.
 
 Features removed in 6.0
 =======================
