@@ -19,7 +19,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
           cpus: 2
 
 
@@ -29,11 +29,19 @@ flow:
     commands:
       - type: console
         command: python -m pip install -e /var/www/django --root-user-action=ignore
+        log-stdout: True
+        log-stderr: True
+        read-sci-stdout: True
+
   - name: Install Django test libraries
     container: gcb-django-tests
     commands:
       - type: console
         command: python -m pip install -r /var/www/django/tests/requirements/py3.txt --root-user-action=ignore
+        log-stdout: True
+        log-stderr: True
+        read-sci-stdout: True
+
   - name: Run Django tests
     container: gcb-django-tests
     commands:
@@ -41,5 +49,6 @@ flow:
         command: python /var/www/django/tests/runtests.py --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/, "", $0); print "GMT_SCI_R=" $0 }'
         shell: bash
         log-stdout: True
+        log-stderr: True
         read-sci-stdout: True
         ignore-errors: True
