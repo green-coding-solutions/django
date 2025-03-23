@@ -1,22 +1,20 @@
 ---
 name: Django test container
-author: Arne Tarara <arne@green-coding.berlin>
-version: 1
+author: Arne Tarara <arne@green-coding.io>
 description: Energy measurements of the Django official unit tests
-
-compose-file: !include compose.yml
 
 sci:
   R_d: Unit test
 
 services:
   gcb-django-tests:
+    image: python:3.13.2-slim-bookworm
+    container_name: gcb-django-tests
     setup-commands:
       - apt update && apt install -y libmemcached-dev zlib1g-dev gcc
       - pip install --upgrade pip
       - mkdir /var/www
-      - cp -R /tmp/repo /var/www/django
-# We have to copy the code outisde of the read-only mount in /tmp/repo, because django needs to write files.
+      - cp -R /tmp/repo /var/www/django # We have to copy the code outside of the read-only mount in /tmp/repo, because django needs to write files.
     shell: sh
     deploy:
       resources:
