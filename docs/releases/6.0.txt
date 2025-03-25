@@ -236,6 +236,10 @@ Templates
 * The :ttag:`querystring` template tag now consistently prefixes the returned
   query string with a ``?``, ensuring reliable link generation behavior.
 
+* The :ttag:`querystring` template tag now accepts multiple positional
+  arguments, which must be mappings, such as :class:`~django.http.QueryDict`
+  or :class:`dict`.
+
 Tests
 ~~~~~
 
@@ -335,6 +339,10 @@ Miscellaneous
   tuples is deprecated. Set to a list of email address strings instead. Django
   never used the name portion. To include a name, format the address string as
   ``'"Name" <address>'`` or use Python's :func:`email.utils.formataddr`.
+
+* Support for the ``orphans`` argument being larger than or equal to the
+  ``per_page`` argument of :class:`django.core.paginator.Paginator` and
+  :class:`django.core.paginator.AsyncPaginator` is deprecated.
 
 Features removed in 6.0
 =======================
