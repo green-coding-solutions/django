@@ -23,3 +23,12 @@ Bugfixes
 * Fixed a regression in Django 5.2 that caused fields to be incorrectly
   selected when using ``QuerySet.alias()`` after ``values()``
   (:ticket:`36299`).
+
+* Fixed a data corruption possibility in ``file_move_safe()`` when
+  ``allow_overwrite=True``, where leftover content from a previously larger
+  file could remain after overwriting with a smaller one due to lack of
+  truncation (:ticket:`36298`).
+
+* Fixed a regression in Django 5.2 that caused a crash when using
+  ``QuerySet.select_for_update(of=(…))`` with ``values()/values_list()``
+  including expressions (:ticket:`36301`).
