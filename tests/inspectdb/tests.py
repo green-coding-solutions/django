@@ -626,25 +626,19 @@ class InspectDBTransactionalTests(TransactionTestCase):
         self.assertIn(foreign_table_model, output)
         self.assertIn(foreign_table_managed, output)
 
-    @skipUnlessDBFeature("create_test_table_with_composite_primary_key")
     def test_composite_primary_key(self):
-        table_name = "test_table_composite_pk"
-        cursor_execute(connection.features.create_test_table_with_composite_primary_key)
-        self.addCleanup(cursor_execute, "DROP TABLE %s" % table_name)
         out = StringIO()
-        if connection.vendor == "sqlite":
-            field_type = connection.features.introspected_field_types["AutoField"]
-        else:
-            field_type = connection.features.introspected_field_types["IntegerField"]
-        call_command("inspectdb", table_name, stdout=out)
+        field_type = connection.features.introspected_field_types["IntegerField"]
+        call_command("inspectdb", "inspectdb_compositeprimarykeymodel", stdout=out)
         output = out.getvalue()
         self.assertIn(
             "pk = models.CompositePrimaryKey('column_1', 'column_2')",
             output,
         )
         self.assertIn(f"column_1 = models.{field_type}()", output)
-        self.assertIn(
-            "column_2 = models.%s()"
-            % connection.features.introspected_field_types["IntegerField"],
-            output,
-        )
+        self.assertIn(f"column_2 = models.{field_type}()", output)
+
+    def test_composite_primary_key_not_unique_together(self):
+        out = StringIO()
+        call_command("inspectdb", "inspectdb_compositeprimarykeymodel", stdout=out)
+        self.assertNotIn("unique_together", out.getvalue())
