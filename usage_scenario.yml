@@ -11,11 +11,11 @@ services:
     image: python:3.13.2-slim-bookworm
     container_name: gcb-django-tests
     setup-commands:
-      - apt update && apt install -y libmemcached-dev zlib1g-dev gcc
-      - pip install --upgrade pip
-      - mkdir /var/www
-      - cp -R /tmp/repo /var/www/django # We have to copy the code outside of the read-only mount in /tmp/repo, because django needs to write files.
-    shell: sh
+      - command: apt update && apt install -y libmemcached-dev zlib1g-dev gcc
+        shell: sh
+      - command: pip install --upgrade pip
+      - command: mkdir /var/www
+      - command: cp -R /tmp/repo /var/www/django # We have to copy the code outside of the read-only mount in /tmp/repo, because django needs to write files.
     deploy:
       resources:
         limits:
