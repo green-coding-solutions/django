@@ -20,7 +20,7 @@ services:
       resources:
         limits:
           memory: 2G
-          cpus: 2
+          cpus: __GMT_VAR_CPUS__
 
 
 flow:
