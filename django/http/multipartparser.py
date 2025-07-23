@@ -168,7 +168,8 @@ class MultiPartParser:
         # Instantiate the parser and stream:
         stream = LazyStream(ChunkIter(self._input_data, self._chunk_size))
 
-        # Whether or not to signal a file-completion at the beginning of the loop.
+        # Whether or not to signal a file-completion at the beginning of the
+        # loop.
         old_field_name = None
         counters = [0] * len(handlers)
 
@@ -405,8 +406,8 @@ class MultiPartParser:
 
     def _close_files(self):
         # Free up all file handles.
-        # FIXME: this currently assumes that upload handlers store the file as 'file'
-        # We should document that...
+        # FIXME: this currently assumes that upload handlers store the file as
+        # 'file'. We should document that...
         # (Maybe add handler.free_file to complement new_file)
         for handler in self._upload_handlers:
             if hasattr(handler, "file"):
@@ -418,8 +419,8 @@ class LazyStream:
     The LazyStream wrapper allows one to get and "unget" bytes from a stream.
 
     Given a producer object (an iterator that yields bytestrings), the
-    LazyStream object will support iteration, reading, and keeping a "look-back"
-    variable in case you need to "unget" some bytes.
+    LazyStream object will support iteration, reading, and keeping a
+    "look-back" variable in case you need to "unget" some bytes.
     """
 
     def __init__(self, producer, length=None):
