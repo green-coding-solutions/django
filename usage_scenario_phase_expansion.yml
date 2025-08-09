@@ -1,0 +1,36 @@
+---
+name: Django test container
+author: Arne Tarara <arne@green-coding.io>
+description: Energy measurements of the Django official unit tests
+
+ignore-unsupported-compose: true
+
+sci:
+  R_d: Unit test
+
+services:
+  gcb-django-tests:
+    build: .
+    container_name: gcb-django-tests
+    # copy over the repo again fresh. good for debugging when we do not want to build the container image
+    # every time just to see the updates in the run-test.sh in the container
+    setup-commands:
+      - command: cp /tmp/repo/run-tests.sh /var/www/django/ # We have to copy the code outside of the read-only mount in /tmp/repo, because django needs to write files.
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: __GMT_VAR_CPUS__
+
+flow:
+
+  - name: Run Django tests
+    container: gcb-django-tests
+    commands:
+      - type: console
+        command: bash /var/www/django/run-tests.sh
+        sub-phase-expansion-pattern: '^\[(\d+)\] test_(\w+) .* ... .*$'
+        log-stdout: True
+        log-stderr: True
+        read-sci-stdout: True
+        ignore-errors: True
