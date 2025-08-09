@@ -1,11 +1,11 @@
-FROM python:3.10.12-slim-bullseye
+FROM python:3.13.2-slim-bullseye
 
-WORKDIR /tmp
+COPY . /var/www/django
 
-RUN apt update && apt install -y libmemcached-dev zlib1g-dev gcc
+WORKDIR /var/www/django/tests
 
-WORKDIR /tmp/django/tests
+RUN DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive apt install -y libmemcached-dev zlib1g-dev gcc moreutils
 
 RUN pip install --upgrade pip
-RUN python -m pip install -e ..
+RUN python -m pip install -e .. --root-user-action=ignore
 RUN python -m pip install -r requirements/py3.txt
