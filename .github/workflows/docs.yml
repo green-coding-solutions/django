@@ -28,7 +28,7 @@ jobs:
     name: spelling
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
@@ -47,13 +47,13 @@ jobs:
           sphinx-build -b spelling -n -q -W -d _build/doctrees -D language=en_US -j auto . _build/spelling
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'docs'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -62,7 +62,7 @@ jobs:
     name: blacken-docs
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
@@ -84,12 +84,45 @@ jobs:
           exit $RESULT
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'blacken-docs'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
+
+  lint-docs:
+    runs-on: ubuntu-latest
+    name: lint-docs
+    steps:
+      - name: Eco-CI Init
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: start-measurement
+
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install sphinx-lint
+      - name: Build docs
+        run: |
+          cd docs
+          make lint
+
+      - name: Eco-CI Measurement
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: get-measurement
+          label: 'lint docs'
+
+      - name: Eco-CI Results
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: display-results
+
