@@ -5,14 +5,16 @@ from os.path import abspath, dirname, splitext
 from unittest import mock
 
 from sphinxlint.checkers import (
+    _ROLE_BODY,
     _is_long_interpreted_text,
     _is_very_long_string_literal,
     _starts_with_anonymous_hyperlink,
     _starts_with_directive_or_hyperlink,
 )
 from sphinxlint.checkers import checker as sphinxlint_checker
+from sphinxlint.rst import SIMPLENAME
 from sphinxlint.sphinxlint import check_text
-from sphinxlint.utils import PER_FILE_CACHES, hide_non_rst_blocks
+from sphinxlint.utils import PER_FILE_CACHES, hide_non_rst_blocks, paragraphs
 
 
 def django_check_file(filename, checkers, options=None):
@@ -114,6 +116,40 @@ def check_line_too_long_django(file, lines, options=None):
                 ):
                     continue
             yield lno + 1, f"Line too long ({len(line) - 1}/{options.max_line_length})"
+
+
+_PYTHON_DOMAIN = re.compile(f":py:{SIMPLENAME}:`{_ROLE_BODY}`")
+
+
+@sphinxlint_checker(".rst", enabled=False, rst_only=True)
+def check_python_domain_in_roles(file, lines, options=None):
+    """
+    :py: indicates the Python language domain. This means code writen in
+    Python, not Python built-ins in particular.
+
+    Bad:    :py:class:`email.message.EmailMessage`
+    Good:   :class:`email.message.EmailMessage`
+    """
+    for lno, line in enumerate(lines, start=1):
+        role = _PYTHON_DOMAIN.search(line)
+        if role:
+            yield lno, f":py domain is the default and can be omitted {role.group(0)!r}"
+
+
+_DOC_CAPTURE_TARGET_RE = re.compile(r":doc:`(?:[^<`]+<)?([^>`]+)>?`")
+
+
+@sphinxlint_checker(".rst", rst_only=True)
+def check_absolute_targets_doc_role(file, lines, options=None):
+    for paragraph_lno, paragraph in paragraphs(lines):
+        for error in _DOC_CAPTURE_TARGET_RE.finditer(paragraph):
+            target = error.group(1)
+            # Skip absolute or intersphinx refs like "python:using/windows".
+            if target.startswith("/") or ":" in target.split("/", 1)[0]:
+                continue
+            # Relative target, report as a violation.
+            error_offset = paragraph[: error.start()].count("\n")
+            yield (paragraph_lno + error_offset, target)
 
 
 import sphinxlint  # noqa: E402
