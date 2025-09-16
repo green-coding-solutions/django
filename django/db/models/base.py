@@ -1153,7 +1153,8 @@ class Model(AltersData, metaclass=ModelBase):
                     getattr(self, field.attname) if raw else field.pre_save(self, False)
                 )
                 if hasattr(value, "resolve_expression"):
-                    returning_fields.append(field)
+                    if field not in returning_fields:
+                        returning_fields.append(field)
                 elif field.db_returning:
                     returning_fields.remove(field)
             results = self._do_insert(
@@ -1357,7 +1358,7 @@ class Model(AltersData, metaclass=ModelBase):
         meta = meta or self._meta
         field_map = {}
         generated_fields = []
-        for field in meta.local_concrete_fields:
+        for field in meta.local_fields:
             if field.name in exclude:
                 continue
             if field.generated:
@@ -1368,7 +1369,19 @@ class Model(AltersData, metaclass=ModelBase):
                     continue
                 generated_fields.append(field)
                 continue
-            value = getattr(self, field.attname)
+            if (
+                isinstance(field.remote_field, ForeignObjectRel)
+                and field not in meta.local_concrete_fields
+            ):
+                value = tuple(
+                    getattr(self, from_field) for from_field in field.from_fields
+                )
+                if len(value) == 1:
+                    value = value[0]
+            elif field.concrete:
+                value = getattr(self, field.attname)
+            else:
+                continue
             if not value or not hasattr(value, "resolve_expression"):
                 value = Value(value, field)
             field_map[field.name] = value
