@@ -112,6 +112,45 @@ A `migration guide`_ is available if you're updating from the
 
 .. _migration guide: https://github.com/carltongibson/django-template-partials/blob/main/Migration.md
 
+Background Tasks
+----------------
+
+Django now includes a built-in Tasks framework for running code outside the
+HTTP request–response cycle. This enables offloading work, such as sending
+emails or processing data, to background workers.
+
+Tasks are defined using the :func:`~django.tasks.task` decorator::
+
+    from django.core.mail import send_mail
+    from django.tasks import task
+
+
+    @task
+    def email_users(emails, subject, message):
+        return send_mail(subject, message, None, emails)
+
+Once defined, tasks can be enqueued through a configured backend::
+
+    email_users.enqueue(
+        emails=["user@example.com"],
+        subject="You have a message",
+        message="Hello there!",
+    )
+
+Backends are configured via the :setting:`TASKS` setting. Django provides
+two built-in backends, primarily for development and testing:
+
+* :class:`~django.tasks.backends.immediate.ImmediateBackend`: executes tasks
+  immediately in the same process.
+* :class:`~django.tasks.backends.dummy.DummyBackend`: stores tasks without
+  running them, leaving results in the
+  :attr:`~django.tasks.TaskResultStatus.READY` state.
+
+Django only handles task creation and queuing; it does not provide a worker
+mechanism to run tasks. Execution must be managed by external infrastructure,
+such as a separate process or service. See :doc:`/topics/tasks` for an
+overview, and the :doc:`Tasks reference </ref/tasks>` for API details.
+
 Minor features
 --------------
 
@@ -170,6 +209,12 @@ Minor features
 
 :mod:`django.contrib.postgres`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* The new :class:`Lexeme <django.contrib.postgres.search.Lexeme>` expression
+  for full text search provides fine-grained control over search terms.
+  ``Lexeme`` objects automatically escape their input and support logical
+  combination operators (``&``, ``|``, ``~``), prefix matching, and term
+  weighting.
 
 * Model fields, indexes, and constraints from :mod:`django.contrib.postgres`
   now include system checks to verify that ``django.contrib.postgres`` is an
