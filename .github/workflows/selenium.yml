@@ -43,8 +43,8 @@ jobs:
       - name: Run Selenium tests
         working-directory: ./tests/
         run: |
-          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_sqlite --parallel 2
-      
+          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_sqlite --parallel 1
+
       - name: Eco-CI Measurement
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
@@ -79,7 +79,7 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
-          
+
       - name: Checkout
         uses: actions/checkout@v5
       - name: Set up Python
@@ -98,7 +98,7 @@ jobs:
       - name: Run Selenium tests
         working-directory: ./tests/
         run: |
-          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_postgres --parallel 2
+          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_postgres --parallel 1
 
       - name: Eco-CI Measurement
         uses: green-coding-berlin/eco-ci-energy-estimation@main
