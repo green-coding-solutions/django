@@ -79,6 +79,8 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -114,6 +116,8 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -169,6 +173,8 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -232,6 +238,8 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@main
         with:
           task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
 
       - name: Checkout
         uses: actions/checkout@v5
