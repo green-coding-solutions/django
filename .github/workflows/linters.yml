@@ -26,12 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -45,13 +47,13 @@ jobs:
           run: flake8
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-flake8'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -60,12 +62,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -79,13 +83,13 @@ jobs:
           run: isort --check --diff django tests scripts
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-isort'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -94,23 +98,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
 
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: black
         uses: psf/black@stable
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-black'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
+  zizmor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Eco-CI Init
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: start-measurement
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@e673c3917a1aef3c65c972347ed84ccd013ecda4 # v0.2.0
+        with:
+          advanced-security: false
+          annotations: true
+
+      - name: Eco-CI Measurement
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: get-measurement
+          label: 'linters-black'
+
+      - name: Eco-CI Results
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: display-results
