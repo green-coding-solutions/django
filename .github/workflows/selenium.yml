@@ -21,6 +21,7 @@ jobs:
     #if: contains(github.event.pull_request.labels.*.name, 'selenium')
     runs-on: ubuntu-latest
     name: SQLite
+    timeout-minutes: 60
     steps:
       - name: Eco-CI Init
         uses: green-coding-berlin/eco-ci-energy-estimation@main
@@ -63,6 +64,7 @@ jobs:
     #if: contains(github.event.pull_request.labels.*.name, 'selenium')
     runs-on: ubuntu-latest
     name: PostgreSQL
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres:15-alpine
