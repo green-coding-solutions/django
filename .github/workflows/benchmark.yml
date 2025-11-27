@@ -14,6 +14,7 @@ jobs:
   Run_benchmarks:
     #if: contains(github.event.pull_request.labels.*.name, 'benchmark')
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Eco-CI Init
         uses: green-coding-berlin/eco-ci-energy-estimation@main

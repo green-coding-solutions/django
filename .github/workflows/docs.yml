@@ -26,6 +26,7 @@ jobs:
   docs:
     runs-on: ubuntu-24.04
     name: spelling
+    timeout-minutes: 60
     steps:
       - name: Eco-CI Init
         uses: green-coding-solutions/eco-ci-energy-estimation@main
@@ -65,6 +66,7 @@ jobs:
   blacken-docs:
     runs-on: ubuntu-latest
     name: blacken-docs
+    timeout-minutes: 60
     steps:
       - name: Eco-CI Init
         uses: green-coding-solutions/eco-ci-energy-estimation@main
@@ -106,6 +108,7 @@ jobs:
   lint-docs:
     runs-on: ubuntu-latest
     name: lint-docs
+    timeout-minutes: 60
     steps:
       - name: Eco-CI Init
         uses: green-coding-solutions/eco-ci-energy-estimation@main
