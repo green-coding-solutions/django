@@ -24,7 +24,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout Benchmark Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: django/django-asv
           path: "."

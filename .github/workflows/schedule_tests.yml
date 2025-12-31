@@ -29,7 +29,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
@@ -86,7 +86,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Node.js
@@ -124,7 +124,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
@@ -182,7 +182,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
@@ -248,7 +248,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
