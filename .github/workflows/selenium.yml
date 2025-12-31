@@ -31,7 +31,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
@@ -89,7 +89,7 @@ jobs:
           co2-grid-intensity-constant: 231
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Set up Python
