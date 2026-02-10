@@ -418,7 +418,7 @@ class ChangeListTests(TestCase):
         # make sure that hidden fields are in the correct place
         hiddenfields_div = (
             '<div class="hiddenfields">'
-            '<input type="hidden" name="form-0-id" value="%d" id="id_form-0-id">'
+            '<input type="hidden" name="form-0-id" value="%s" id="id_form-0-id">'
             "</div>"
         ) % new_child.id
         self.assertInHTML(
@@ -454,7 +454,7 @@ class ChangeListTests(TestCase):
         with self.assertRaises(IncorrectLookupParameters):
             m.get_changelist_instance(request)
 
-    @skipUnlessDBFeature("supports_transactions")
+    @skipUnlessDBFeature("uses_savepoints")
     def test_list_editable_atomicity(self):
         a = Swallow.objects.create(origin="Swallow A", load=4, speed=1)
         b = Swallow.objects.create(origin="Swallow B", load=2, speed=2)

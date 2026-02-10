@@ -284,6 +284,9 @@ Models
 * The :data:`~django.db.models.signals.m2m_changed` signal now receives a
   ``raw`` argument.
 
+* :class:`~django.db.models.StringAgg` now supports ``distinct=True`` on SQLite
+  when using the default delimiter ``Value(",")`` only.
+
 Pagination
 ~~~~~~~~~~
 
@@ -292,7 +295,8 @@ Pagination
 Requests and Responses
 ~~~~~~~~~~~~~~~~~~~~~~
 
-* ...
+* :attr:`HttpRequest.multipart_parser_class <django.http.HttpRequest.multipart_parser_class>`
+  can now be customized to use a different multipart parser class.
 
 Security
 ~~~~~~~~
