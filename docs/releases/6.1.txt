@@ -355,7 +355,11 @@ Templates
 Tests
 ~~~~~
 
-* ...
+* :meth:`~django.test.SimpleTestCase.assertContains` and
+  :meth:`~django.test.SimpleTestCase.assertNotContains` can now be called
+  multiple times on the same :class:`~django.http.StreamingHttpResponse`.
+  Previously, they would consume the streaming response's content, causing
+  subsequent calls to fail.
 
 URLs
 ~~~~
@@ -456,6 +460,10 @@ short-term maintenance releases. Django 6.1 supports MariaDB 10.11 and higher.
 
 Miscellaneous
 -------------
+
+* Providing ``fail_silently=True``, ``auth_user``, or ``auth_password`` to mail
+  sending functions (such as :func:`~django.core.mail.send_mail`) while also
+  providing a ``connection`` now raises a ``TypeError``.
 
 * :class:`~django.contrib.contenttypes.fields.GenericForeignKey` now uses a
   separate descriptor class: the private ``GenericForeignKeyDescriptor``.
