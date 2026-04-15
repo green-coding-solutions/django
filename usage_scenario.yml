@@ -3,8 +3,10 @@ name: Django test container
 author: Arne Tarara <arne@green-coding.io>
 description: Energy measurements of the Django official unit tests
 
-sci:
-  R_d: Unit test
+custom_metrics:
+  unit_tests:
+    unit: Unit Tests
+    regex: ^(\d+) GMT_SCI_R=(\d+)$
 
 services:
   gcb-django-tests:
@@ -28,26 +30,17 @@ flow:
     commands:
       - type: console
         command: python -m pip install -e /var/www/django --root-user-action=ignore
-        log-stdout: True
-        log-stderr: True
-        read-sci-stdout: True
 
   - name: Install Django test libraries
     container: gcb-django-tests
     commands:
       - type: console
         command: python -m pip install -r /var/www/django/tests/requirements/py3.txt --root-user-action=ignore
-        log-stdout: True
-        log-stderr: True
-        read-sci-stdout: True
 
   - name: Run Django tests
     container: gcb-django-tests
     commands:
       - type: console
-        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/, "", $0); print "GMT_SCI_R=" $0 }'
+        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/,""); cmd="date +%s%N"; cmd|getline ts; close(cmd); print ts " GMT_SCI_R=" $0 }'
         shell: bash
-        log-stdout: True
-        log-stderr: True
-        read-sci-stdout: True
         ignore-errors: True
