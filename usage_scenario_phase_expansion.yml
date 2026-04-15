@@ -5,9 +5,6 @@ description: Energy measurements of the Django official unit tests
 
 ignore-unsupported-compose: true
 
-sci:
-  R_d: Unit test
-
 services:
   gcb-django-tests:
     build: .
@@ -30,7 +27,4 @@ flow:
       - type: console
         command: bash /var/www/django/run-tests.sh
         sub-phase-expansion-pattern: '^\[(\d+)\] test_(\w+) .* ... .*$'
-        log-stdout: True
-        log-stderr: True
-        read-sci-stdout: True
         ignore-errors: True

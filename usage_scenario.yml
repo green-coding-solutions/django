@@ -3,8 +3,10 @@ name: Django test container
 author: Arne Tarara <arne@green-coding.io>
 description: Energy measurements of the Django official unit tests
 
-sci:
-  R_d: Unit test
+custom_metrics:
+  unit_tests:
+    unit: Unit Tests
+    regex: ^(\d+) GMT_SCI_R=(\d+)$
 
 services:
   gcb-django-tests:
@@ -22,7 +24,6 @@ services:
           memory: 2G
           cpus: __GMT_VAR_CPUS__
 
-
 flow:
   - name: Install Django base libraries
     container: gcb-django-tests
@@ -38,8 +39,6 @@ flow:
     container: gcb-django-tests
     commands:
       - type: console
-        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/, "", $0); print "GMT_SCI_R=" $0 }'
+        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/,""); cmd="date +%s%N"; cmd|getline ts; close(cmd); print ts " GMT_SCI_R=" $0 }'
         shell: bash
-        log-stdout: True
-        read-sci-stdout: True
         ignore-errors: True
