@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -73,12 +73,46 @@ jobs:
       - run: npm test
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'npm tests'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: display-results
+
+  scripts-tests:
+    runs-on: ubuntu-latest
+    name: Scripts tests
+    timeout-minutes: 60
+    steps:
+      - name: Eco-CI Init
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
+
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - run: python -m unittest discover -v -s scripts/
+
+      - name: Eco-CI Measurement
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: get-measurement
+          label: 'unittests'
+
+      - name: Eco-CI Results
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
