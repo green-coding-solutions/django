@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -50,13 +50,13 @@ jobs:
           run: flake8
 
       - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-flake8'
 
       - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -66,7 +66,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -89,13 +89,13 @@ jobs:
           run: isort --check --diff django tests scripts
 
       - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-isort'
 
       - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -119,13 +119,13 @@ jobs:
         uses: psf/black@stable
 
       - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-black'
 
       - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -134,7 +134,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -151,12 +151,47 @@ jobs:
           annotations: true
 
       - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'linters-black'
 
       - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@print-cpu-info
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: display-results
+
+  biome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Eco-CI Init
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: start-measurement
+          co2-calculation-method: 'constant'
+          co2-grid-intensity-constant: 231
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package.json'
+      - run: npm install
+      - run: npx biome ci
+
+      - name: Eco-CI Measurement
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
+        with:
+          task: get-measurement
+          label: 'biome ci'
+
+      - name: Eco-CI Results
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
