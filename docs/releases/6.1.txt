@@ -154,6 +154,9 @@ Minor features
   allow filtering geometries by the number of dimensions on PostGIS and
   SpatiaLite.
 
+* :class:`~django.contrib.gis.forms.widgets.OpenLayersWidget` is now based on
+  OpenLayers 10.9.0 (previously 7.2.2).
+
 :mod:`django.contrib.messages`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -572,6 +575,10 @@ Miscellaneous
   generally available :class:`~django.db.models.BitAnd`,
   :class:`~django.db.models.BitOr`, and :class:`~django.db.models.BitXor`
   classes.
+
+* Support for a double-dot variable lookup like ``{{ book..title }}`` which
+  maps to a lookup of the empty string before the next lookup of the named
+  attribute is deprecated.
 
 Features removed in 6.1
 =======================
