@@ -5,6 +5,7 @@ from django.contrib.auth import aauthenticate, authenticate
 from django.contrib.auth.backends import RemoteUserBackend
 from django.contrib.auth.middleware import RemoteUserMiddleware
 from django.contrib.auth.models import User
+from django.core.exceptions import ImproperlyConfigured
 from django.middleware.csrf import _get_new_csrf_string, _mask_cipher_secret
 from django.test import (
     AsyncClient,
@@ -389,6 +390,13 @@ class CustomRemoteUserBackend(RemoteUserBackend):
         user.save()
         return user
 
+    async def aconfigure_user(self, request, user, created=True):
+        user.email = request.META.get("HTTP_" + RemoteUserTest.email_header, "")
+        if not created:
+            user.last_name = user.username
+        await user.asave()
+        return user
+
 
 class RemoteUserCustomTest(RemoteUserTest):
     """
@@ -433,6 +441,32 @@ class RemoteUserCustomTest(RemoteUserTest):
         self.assertEqual(response.context["user"].last_name, "")
         self.assertEqual(User.objects.count(), num_users + 1)
         newuser = User.objects.get(username="newuser")
+        self.assertEqual(newuser.email, "user@example.com")
+
+    async def test_known_user_async(self):
+        """See test_known_user."""
+        await super().test_known_user_async()
+        knownuser = await User.objects.aget(username="knownuser")
+        knownuser2 = await User.objects.aget(username="knownuser2")
+        self.assertEqual(knownuser.email, "")
+        self.assertEqual(knownuser2.email, "")
+        self.assertEqual(knownuser.last_name, "knownuser")
+        self.assertEqual(knownuser2.last_name, "knownuser2")
+
+    async def test_unknown_user_async(self):
+        num_users = await User.objects.acount()
+        response = await self.async_client.get(
+            "/remote_user/",
+            **{
+                self.header: "newuser",
+                self.email_header: "user@example.com",
+            },
+        )
+        self.assertEqual(response.context["user"].username, "newuser")
+        self.assertEqual(response.context["user"].email, "user@example.com")
+        self.assertEqual(response.context["user"].last_name, "")
+        self.assertEqual(await User.objects.acount(), num_users + 1)
+        newuser = await User.objects.aget(username="newuser")
         self.assertEqual(newuser.email, "user@example.com")
 
 
@@ -489,3 +523,48 @@ class PersistentRemoteUserTest(RemoteUserTest):
         response = await self.async_client.get("/remote_user/")
         self.assertFalse(response.context["user"].is_anonymous)
         self.assertEqual(response.context["user"].username, "knownuser")
+
+
+@override_settings(ROOT_URLCONF="auth_tests.urls")
+class RemoteUserImproperlyConfigured(TestCase):
+    msg = (
+        "The Django remote user auth middleware requires the authentication middleware "
+        "to be installed. Edit your MIDDLEWARE setting to insert 'django.contrib.auth."
+        "middleware.AuthenticationMiddleware' before the %s class."
+    )
+
+    @override_settings(
+        MIDDLEWARE=["django.contrib.auth.middleware.RemoteUserMiddleware"]
+    )
+    def test_improperly_configured_message_remote_user(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, self.msg % "RemoteUserMiddleware"
+        ):
+            self.client.get("/remote_user/")
+
+    @override_settings(
+        MIDDLEWARE=["django.contrib.auth.middleware.PersistentRemoteUserMiddleware"]
+    )
+    def test_improperly_configured_message_persistent_remote_user(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, self.msg % "PersistentRemoteUserMiddleware"
+        ):
+            self.client.get("/remote_user/")
+
+    @override_settings(
+        MIDDLEWARE=["django.contrib.auth.middleware.RemoteUserMiddleware"]
+    )
+    async def test_improperly_configured_message_remote_user_async(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, self.msg % "RemoteUserMiddleware"
+        ):
+            await self.async_client.get("/remote_user/")
+
+    @override_settings(
+        MIDDLEWARE=["django.contrib.auth.middleware.PersistentRemoteUserMiddleware"]
+    )
+    async def test_improperly_configured_message_persistent_remote_user_async(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, self.msg % "PersistentRemoteUserMiddleware"
+        ):
+            await self.async_client.get("/remote_user/")
