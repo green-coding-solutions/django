@@ -305,6 +305,9 @@ class AdminViewBasicTestCase(TestCase):
         )
 
 
+@override_settings(
+    MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
+)
 class AdminViewBasicTest(AdminViewBasicTestCase):
     def test_trailing_slash_required(self):
         """
@@ -2346,6 +2349,7 @@ def get_perm(Model, codename):
             },
         }
     ],
+    MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}},
 )
 class AdminViewPermissionsTest(TestCase):
     """Tests for Admin Views Permissions."""
@@ -4867,7 +4871,7 @@ class AdminViewListEditable(TestCase):
             "form-0-alive": "1",
             "form-0-gender": "2",
             # The form processing understands this as a list_editable "Save"
-            # and not an action "Go".
+            # and not an action "Run".
             "_save": "Save",
         }
         response = self.client.post(
@@ -4922,7 +4926,7 @@ class AdminViewListEditable(TestCase):
             "form-3-id": "4",
             "form-3-collector": "1",
             # The form processing understands this as a list_editable "Save"
-            # and not an action "Go".
+            # and not an action "Run".
             "_save": "Save",
         }
         response = self.client.post(
@@ -4958,7 +4962,7 @@ class AdminViewListEditable(TestCase):
         self.assertContains(response, "Unordered object #1")
 
     def test_list_editable_action_submit(self):
-        # List editable changes should not be executed if the action "Go"
+        # List editable changes should not be executed if the action "Run"
         # button is used to submit the form.
         data = {
             "form-TOTAL_FORMS": "3",
