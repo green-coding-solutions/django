@@ -2060,13 +2060,8 @@ class ModelAdmin(BaseModelAdmin):
 
         else:
             obj = self.get_object(request, unquote(object_id), to_field)
-
-            if request.method == "POST":
-                if not self.has_change_permission(request, obj):
-                    raise PermissionDenied
-            else:
-                if not self.has_view_or_change_permission(request, obj):
-                    raise PermissionDenied
+            if not self.has_view_or_change_permission(request, obj):
+                raise PermissionDenied
 
             if obj is None:
                 return self._get_obj_does_not_exist_redirect(
@@ -2105,12 +2100,18 @@ class ModelAdmin(BaseModelAdmin):
                 and "_continue" not in request.POST
                 and "_addanother" not in request.POST
             ):
+                selected = request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)
+                if len(selected) != 1 or selected[0] != str(obj.pk):
+                    raise BadRequest
                 queryset = self.model._default_manager.get_queryset()
                 if response := self.response_action(
                     request, queryset, action_location=ActionLocation.CHANGE_FORM
                 ):
                     return response
                 return HttpResponseRedirect(request.get_full_path())
+
+            if not add and not self.has_change_permission(request, obj):
+                raise PermissionDenied
 
             form = ModelForm(request.POST, request.FILES, instance=obj)
             formsets, inline_instances = self._create_formsets(
