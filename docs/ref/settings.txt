@@ -2158,8 +2158,7 @@ configuration process will be skipped.
 
 .. versionadded:: 6.1
 
-Default: no default until Django 7.0, then ``{}``. (See deprecation note
-below.)
+Default: no default until the deprecation ends, then ``{}``.
 
 A dictionary containing the settings for all email backends to be used with
 Django. It is a nested dictionary that maps backend aliases to dictionaries
@@ -3186,12 +3185,18 @@ the correct environment.
 ------------------------------------
 
 .. versionadded:: 6.1
-.. deprecated:: 6.1
 
 Default: ``False``
 
-Set this transitional setting to ``True`` to revert back to the old default
-blank choice label in forms.
+The default blank choice label in ``Select`` widgets was changed from
+``"---------"`` to ``django.db.models.fields.BLANK_CHOICE_LABEL``. Set this
+transitional setting to ``True`` to revert to the previous label.
+
+.. deprecated:: 6.1
+
+    This setting will be removed in Django 7.0. To use a custom default blank
+    choice label, override ``django.db.models.fields.BLANK_CHOICE_LABEL`` in
+    the app's ``ready()`` method.
 
 .. setting:: USE_I18N
 
