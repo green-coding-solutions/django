@@ -291,7 +291,9 @@ class HttpResponseBase:
         self.headers.setdefault(key, value)
 
     def set_signed_cookie(self, key, value, salt="", **kwargs):
-        value = signing.get_cookie_signer(salt=key + salt).sign(value)
+        value = signing.get_cookie_signer(
+            salt=signing._cookie_signer_salt(key, salt)
+        ).sign(value)
         return self.set_cookie(key, value, **kwargs)
 
     def delete_cookie(self, key, path="/", domain=None, samesite=None):
@@ -745,9 +747,7 @@ class JsonResponse(HttpResponse):
     """
     An HTTP response class that consumes data to be serialized to JSON.
 
-    :param data: Data to be dumped into json. By default only ``dict`` objects
-      are allowed to be passed due to a security flaw before ECMAScript 5. See
-      the ``safe`` parameter for more information.
+    :param data: Data to be dumped into json.
     :param encoder: Should be a json encoder class. Defaults to
       ``django.core.serializers.json.DjangoJSONEncoder``.
     :param safe: Controls if only ``dict`` objects may be serialized. Defaults
