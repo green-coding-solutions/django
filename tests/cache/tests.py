@@ -1361,6 +1361,24 @@ class DBCacheTests(BaseCacheTests, TransactionTestCase):
                 )
                 self.assertEqual(num_count_queries, 0)
 
+    def test_delete_query_skipped_on_high_cull_frequency(self):
+        cull_delete_cache = caches["cull"]
+        old_cull_freq = cull_delete_cache._cull_frequency
+
+        # CULL_FREQUENCY > MAX_ENTRIES forces
+        # (remaining_num // CULL_FREQUENCY) to evaluate to zero (cull_num)
+        cull_delete_cache._cull_frequency = cull_delete_cache._max_entries * 2
+        self.addCleanup(setattr, cull_delete_cache, "_cull_frequency", old_cull_freq)
+
+        self._perform_cull_test("cull", 50, 49)
+
+        with CaptureQueriesContext(connection) as captured_queries:
+            cull_delete_cache.set("force_cull", "value")
+
+        # Only the expiration DELETE query runs; culling is skipped.
+        num_delete_queries = sum("DELETE" in query["sql"] for query in captured_queries)
+        self.assertEqual(num_delete_queries, 1)
+
     def test_delete_cursor_rowcount(self):
         """
         The rowcount attribute should not be checked on a closed cursor.
@@ -3026,6 +3044,23 @@ class CacheMiddlewareTest(SimpleTestCase):
                 response = view(request, "2")
                 self.assertEqual(response.content, b"Hello World 2")
 
+    def test_cache_control_not_cached_superstring(self):
+        """
+        "myprivate", a hypothetical extension directive, is not confused for
+        "private".
+        """
+
+        @cache_page(3)
+        @cache_control(myprivate=True)
+        def view(request, value):
+            return HttpResponse(f"Hello World {value}")
+
+        request = self.factory.get("/view/")
+        response = view(request, "1")
+        self.assertEqual(response.content, b"Hello World 1")
+        response = view(request, "2")
+        self.assertEqual(response.content, b"Hello World 1")
+
     def test_vary_asterisk_not_cached(self):
         views_with_cache = (
             cache_page(3)(hello_world_view_patch_vary_headers_asterisk),
@@ -3063,6 +3098,16 @@ class CacheMiddlewareTest(SimpleTestCase):
         request = self.factory.get("/view/", headers={"Authorization": "token"})
         response = view_with_cache(request, "1")
         self.assertIs(has_vary_header(response, "Authorization"), False)
+
+    def test_authorization_header_exception_superstring(self):
+        """
+        "nopublic", a hypothetical extension directive, is not confused for
+        "public".
+        """
+        view_with_cache = cache_page(3)(cache_control(no_public=True)(hello_world_view))
+        request = self.factory.get("/view/", headers={"Authorization": "token"})
+        response = view_with_cache(request, "1")
+        self.assertIs(has_vary_header(response, "Authorization"), True)
 
     def test_sensitive_cookie_not_cached(self):
         """
