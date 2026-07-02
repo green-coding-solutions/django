@@ -41,6 +41,6 @@ flow:
     container: gcb-django-tests
     commands:
       - type: console
-        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '/Found [0-9]+ test\(s\)/ { gsub(/Found | test\(s\)/,""); cmd="date +%s%N"; cmd|getline ts; close(cmd); print ts " GMT_SCI_R=" $0 }'
+        command: python /var/www/django/tests/runtests.py --parallel 1 --noinput | awk '{print} /Found [0-9]+ test\(s\)/ { line=$0; gsub(/Found | test\(s\)\.?/,"",line); cmd="date +%s%N"; cmd|getline ts; close(cmd); print ts " GMT_SCI_R=" line }'
         shell: bash
         ignore-errors: True
