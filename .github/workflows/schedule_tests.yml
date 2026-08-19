@@ -81,7 +81,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -103,25 +103,25 @@ jobs:
       - run: npm test
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'npm tests'
 
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
 
-  selenium-sqlite:
+  playwright-sqlite:
     runs-on: ubuntu-latest
-    name: Selenium tests, SQLite
+    name: Playwright tests, SQLite
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -144,26 +144,28 @@ jobs:
       - name: Install and upgrade packaging tools
         run: python -m pip install --upgrade pip wheel
       - run: python -m pip install -r tests/requirements/py3.txt -e .
-      - name: Run Selenium tests
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
+      - name: Run Playwright tests
         working-directory: ./tests/
         run: |
-          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_sqlite --parallel 1
+          python -Wall runtests.py --verbosity 2 --noinput --playwright=chromium --settings=test_sqlite --parallel 1
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
-          label: 'selenium-sqlite tests'
+          label: 'playwright-sqlite tests'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
 
-  selenium-postgresql:
+  playwright-postgresql:
     runs-on: ubuntu-latest
-    name: Selenium tests, PostgreSQL
+    name: Playwright tests, PostgreSQL
     timeout-minutes: 60
     services:
       postgres:
@@ -181,7 +183,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -204,21 +206,23 @@ jobs:
       - name: Install and upgrade packaging tools
         run: python -m pip install --upgrade pip wheel
       - run: python -m pip install -r tests/requirements/py3.txt -r tests/requirements/postgres.txt -e .
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
       - name: Create PostgreSQL settings file
         run: mv ./.github/workflows/data/test_postgres.py.tpl ./tests/test_postgres.py
-      - name: Run Selenium tests
+      - name: Run Playwright tests
         working-directory: ./tests/
         run: |
-          python -Wall runtests.py --verbosity 2 --noinput --selenium=chrome --headless --settings=test_postgres --parallel 1
+          python -Wall runtests.py --verbosity 2 --noinput --playwright=chromium --settings=test_postgres --parallel 1
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
           label: 'selenium-postgres tests'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
 
@@ -249,7 +253,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: start-measurement
           co2-calculation-method: 'constant'
@@ -279,12 +283,12 @@ jobs:
         run: python -Wall runtests.py --settings=test_postgres --verbosity=2
 
       - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: get-measurement
-          label: 'selenium-postgres tests'
+          label: 'postgresql tests'
 
       - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
+        uses: green-coding-solutions/eco-ci-energy-estimation@main
         with:
           task: display-results
