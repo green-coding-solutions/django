@@ -2786,9 +2786,9 @@ class InlineModelAdmin(BaseModelAdmin):
         can_change = self.has_change_permission(request, obj) if request else True
         can_add = self.has_add_permission(request, obj) if request else True
         delete_confirmation_max_display = (
-            self.delete_confirmation_max_display
-            if self.delete_confirmation_max_display
-            else sys.maxsize
+            sys.maxsize
+            if self.delete_confirmation_max_display is None
+            else self.delete_confirmation_max_display
         )
 
         class DeleteProtectedModelForm(base_model_form):
@@ -2821,6 +2821,16 @@ class InlineModelAdmin(BaseModelAdmin):
                             "class_name": self._meta.model._meta.verbose_name,
                             "instance": self.instance,
                         }
+                        if delete_confirmation_max_display == 0:
+                            raise ValidationError(
+                                _(
+                                    "Deleting %(class_name)s %(instance)s would "
+                                    "require deleting some protected related "
+                                    "objects."
+                                ),
+                                code="deleting_protected",
+                                params=params,
+                            )
                         remaining_object_count = (
                             len(collector.protected) - delete_confirmation_max_display
                         )
