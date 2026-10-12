@@ -116,8 +116,18 @@ jobs:
 
 
   playwright-sqlite:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            name: Chromium
+          - browser: firefox
+            name: Firefox
+          - browser: webkit
+            name: WebKit
     runs-on: ubuntu-latest
-    name: Playwright tests, SQLite
+    name: Playwright tests, SQLite, ${{ matrix.name }}
     timeout-minutes: 60
     steps:
       - name: Eco-CI Init
@@ -145,11 +155,11 @@ jobs:
         run: python -m pip install --upgrade pip wheel
       - run: python -m pip install -r tests/requirements/py3.txt -e .
       - name: Install Playwright browsers
-        run: python -m playwright install --with-deps chromium
+        run: python -m playwright install --with-deps ${{ matrix.browser }}
       - name: Run Playwright tests
         working-directory: ./tests/
         run: |
-          python -Wall runtests.py --verbosity 2 --noinput --playwright=chromium --settings=test_sqlite --parallel 1
+          python -Wall runtests.py --verbosity 2 --noinput --playwright=${{ matrix.browser }} --settings=test_sqlite --parallel 1
 
       - name: Eco-CI Measurement
         uses: green-coding-solutions/eco-ci-energy-estimation@main
@@ -165,7 +175,7 @@ jobs:
 
   playwright-postgresql:
     runs-on: ubuntu-latest
-    name: Playwright tests, PostgreSQL
+    name: Playwright tests, PostgreSQL, Chromium
     timeout-minutes: 60
     services:
       postgres:
