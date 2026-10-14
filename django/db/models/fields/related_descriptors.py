@@ -744,14 +744,14 @@ def create_reverse_many_to_one_manager(superclass, rel):
                         f'"{field.attname}" before this relationship can be used.'
                     )
 
+        def _empty_strings_as_null(self):
+            db = self._db or router.db_for_read(self.model, instance=self.instance)
+            return connections[db].features.interprets_empty_strings_as_nulls
+
         def _apply_rel_filters(self, queryset):
             """
             Filter the queryset for the instance this manager is bound to.
             """
-            db = self._db or router.db_for_read(self.model, instance=self.instance)
-            empty_strings_as_null = connections[
-                db
-            ].features.interprets_empty_strings_as_nulls
             with queryset._avoid_cloning():
                 queryset._add_hints(instance=self.instance)
                 if self._db:
@@ -759,10 +759,16 @@ def create_reverse_many_to_one_manager(superclass, rel):
                 queryset._fetch_mode = self.instance._state.fetch_mode
                 queryset._defer_next_filter = True
                 queryset = queryset.filter(**self.core_filters)
+            empty_strings_as_null = None
             for field in self.field.foreign_related_fields:
                 val = getattr(self.instance, field.attname)
-                if val is None or (val == "" and empty_strings_as_null):
+                if val is None:
                     return queryset.none()
+                if val == "":
+                    if empty_strings_as_null is None:
+                        empty_strings_as_null = self._empty_strings_as_null()
+                    if empty_strings_as_null:
+                        return queryset.none()
             if self.field.many_to_one:
                 # Guard against field-like objects such as GenericRelation
                 # that abuse create_reverse_many_to_one_manager() with reverse
@@ -1081,38 +1087,41 @@ def create_forward_many_to_many_manager(superclass, rel, reverse):
     """
 
     class ManyRelatedManager(superclass, AltersData):
+        if not reverse:
+            model = rel.model
+            query_field_name = rel.field.related_query_name()
+            prefetch_cache_name = rel.field.name
+            source_field_name = rel.field.m2m_field_name()
+            target_field_name = rel.field.m2m_reverse_field_name()
+            symmetrical = rel.symmetrical
+        else:
+            model = rel.related_model
+            query_field_name = rel.field.name
+            prefetch_cache_name = rel.field.related_query_name()
+            source_field_name = rel.field.m2m_reverse_field_name()
+            target_field_name = rel.field.m2m_field_name()
+            symmetrical = False
+
+        through = rel.through
+        source_field = through._meta.get_field(source_field_name)
+        target_field = through._meta.get_field(target_field_name)
+        pk_field_names = {
+            lh_field.name: rh_field.name
+            for lh_field, rh_field in source_field.related_fields
+        }
+
         def __init__(self, instance=None):
             super().__init__()
 
+            # BaseManager.__init__() sets the instance's model to None.
+            self.model = self.__class__.model
             self.instance = instance
-
-            if not reverse:
-                self.model = rel.model
-                self.query_field_name = rel.field.related_query_name()
-                self.prefetch_cache_name = rel.field.name
-                self.source_field_name = rel.field.m2m_field_name()
-                self.target_field_name = rel.field.m2m_reverse_field_name()
-                self.symmetrical = rel.symmetrical
-            else:
-                self.model = rel.related_model
-                self.query_field_name = rel.field.name
-                self.prefetch_cache_name = rel.field.related_query_name()
-                self.source_field_name = rel.field.m2m_reverse_field_name()
-                self.target_field_name = rel.field.m2m_field_name()
-                self.symmetrical = False
-
-            self.through = rel.through
             self.reverse = reverse
 
-            self.source_field = self.through._meta.get_field(self.source_field_name)
-            self.target_field = self.through._meta.get_field(self.target_field_name)
-
             self.core_filters = {}
-            self.pk_field_names = {}
-            for lh_field, rh_field in self.source_field.related_fields:
+            for rh_field in self.source_field.foreign_related_fields:
                 core_filter_key = "%s__%s" % (self.query_field_name, rh_field.name)
                 self.core_filters[core_filter_key] = getattr(instance, rh_field.attname)
-                self.pk_field_names[lh_field.name] = rh_field.name
 
             self.related_val = self.source_field.get_foreign_related_value(instance)
             if None in self.related_val:
