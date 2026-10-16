@@ -2,8 +2,6 @@ name: Schedule tests
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0,5 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,9 +11,7 @@ permissions:
   contents: read
 
 jobs:
-
   windows:
-    if: false  # disables this job as we do not have windows runners
     runs-on: windows-latest
     strategy:
       matrix:
@@ -80,13 +76,6 @@ jobs:
     name: JavaScript tests
     timeout-minutes: 60
     steps:
-      - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: start-measurement
-          co2-calculation-method: 'constant'
-          co2-grid-intensity-constant: 231
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -101,19 +90,6 @@ jobs:
           cache-dependency-path: '**/package.json'
       - run: npm install
       - run: npm test
-
-      - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: get-measurement
-          label: 'npm tests'
-
-
-      - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: display-results
-
 
   playwright-sqlite:
     strategy:
@@ -130,13 +106,6 @@ jobs:
     name: Playwright tests, SQLite, ${{ matrix.name }}
     timeout-minutes: 60
     steps:
-      - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: start-measurement
-          co2-calculation-method: 'constant'
-          co2-grid-intensity-constant: 231
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -161,18 +130,6 @@ jobs:
         run: |
           python -Wall runtests.py --verbosity 2 --noinput --playwright=${{ matrix.browser }} --settings=test_sqlite --parallel 1
 
-      - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: get-measurement
-          label: 'playwright-sqlite tests'
-
-      - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: display-results
-
-
   playwright-postgresql:
     runs-on: ubuntu-latest
     name: Playwright tests, PostgreSQL, Chromium
@@ -192,13 +149,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: start-measurement
-          co2-calculation-method: 'constant'
-          co2-grid-intensity-constant: 231
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -224,17 +174,6 @@ jobs:
         working-directory: ./tests/
         run: |
           python -Wall runtests.py --verbosity 2 --noinput --playwright=chromium --settings=test_postgres --parallel 1
-
-      - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: get-measurement
-          label: 'selenium-postgres tests'
-
-      - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: display-results
 
   postgresql:
     strategy:
@@ -262,13 +201,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: Eco-CI Init
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: start-measurement
-          co2-calculation-method: 'constant'
-          co2-grid-intensity-constant: 231
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -291,14 +223,3 @@ jobs:
       - name: Run tests
         working-directory: ./tests/
         run: python -Wall runtests.py --settings=test_postgres --verbosity=2
-
-      - name: Eco-CI Measurement
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: get-measurement
-          label: 'postgresql tests'
-
-      - name: Eco-CI Results
-        uses: green-coding-solutions/eco-ci-energy-estimation@main
-        with:
-          task: display-results

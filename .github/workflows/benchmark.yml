@@ -1,9 +1,6 @@
 name: Benchmark
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0,5 * * *'
   pull_request:
     types: [ labeled, synchronize, opened, reopened ]
 
@@ -12,17 +9,10 @@ permissions:
 
 jobs:
   Run_benchmarks:
-    #if: contains(github.event.pull_request.labels.*.name, 'benchmark')
+    if: contains(github.event.pull_request.labels.*.name, 'benchmark')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Eco-CI Init
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
-        with:
-          task: start-measurement
-          co2-calculation-method: 'constant'
-          co2-grid-intensity-constant: 231
-
       - name: Checkout Benchmark Repo
         uses: actions/checkout@v7
         with:
@@ -57,14 +47,3 @@ jobs:
           then
             exit 1
           fi
-
-      - name: Eco-CI Measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
-        with:
-          task: get-measurement
-          label: 'benchmark'
-
-      - name: Eco-CI Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@main
-        with:
-          task: display-results
